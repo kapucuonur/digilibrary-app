@@ -1,3 +1,5 @@
 # Dependencies
 /node_modules
 # Dependencies for the frontend app
+node_modules/
+dist/
