@@ -232,19 +232,14 @@ const Profile = () => {
   const texts = getTexts();
 
   return (
-  <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-    <div className="container mx-auto px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* DEBUG MESSAGE */}
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4">
-          <strong>Debug:</strong> Profile component rendered. Loans: {userLoans.length}
-        </div>
-        
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            {texts.title}
-          </h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              {texts.title}
+            </h1>
             <p className="text-gray-600 dark:text-gray-400">
               {language === 'tr' 
                 ? 'Hesap bilgilerinizi ve okuma istatistiklerinizi görüntüleyin'

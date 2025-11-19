@@ -15,40 +15,45 @@ const Profile = () => {
   const [userLoans, setUserLoans] = useState([]);
   const [loansLoading, setLoansLoading] = useState(true);
 
-  // 🔥 CRITICAL FIX: Loans yükleme - DEBUG EKLENDİ
-  useEffect(() => {
-    console.log('🎯 PROFILE USEFFECT TRIGGERED!');
-    console.log('🔄 Profile component mounted, loading loans...');
-    
-    const loadUserLoans = async () => {
-      try {
-        setLoansLoading(true);
-        console.log('📞 Calling loanService.getMyLoans()...');
-        
-        const response = await loanService.getMyLoans();
-        console.log('✅ Loans API response:', response);
-        console.log('📚 Loans data:', response.data);
-        
-        // Data kontrolü
-        if (response.data && response.data.data) {
-          console.log('🎉 Loans found:', response.data.data);
-          setUserLoans(response.data.data);
-        } else {
-          console.log('⚠️ No loans data found, using empty array');
-          setUserLoans([]);
-        }
-      } catch (error) {
-        console.error('❌ Failed to load user loans:', error);
-        console.error('🔍 Error details:', error.response?.data || error.message);
-        setUserLoans([]);
-      } finally {
-        setLoansLoading(false);
-        console.log('🏁 Loans loading completed');
-      }
-    };
+  // Profil düzenleme form state
+  const [formData, setFormData] = useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    phone: user?.phone || ''
+  });
 
-    loadUserLoans();
-  }, []); // Boş dependency array
+  // Şifre değiştirme form state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  // Kullanıcının ödünç aldığı kitapları getir
+useEffect(() => {
+  const loadUserLoans = async () => {
+    try {
+      setLoansLoading(true);
+      console.log('🔄 Loading user loans...');
+      
+      const response = await loanService.getMyLoans();
+      console.log('📚 Loans API response:', response);
+      console.log('📖 Loans data:', response.data);
+      
+      setUserLoans(response.data.data || []);
+      console.log('✅ User loans set:', response.data.data || []);
+    } catch (error) {
+      console.error('❌ Failed to load user loans:', error);
+      console.error('❌ Error details:', error.response);
+      setUserLoans([]);
+    } finally {
+      setLoansLoading(false);
+      console.log('🏁 Loans loading completed');
+    }
+  };
+
+  loadUserLoans();
+}, []);
 
   // Mock user data
   const userData = {
@@ -232,19 +237,14 @@ const Profile = () => {
   const texts = getTexts();
 
   return (
-  <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-    <div className="container mx-auto px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* DEBUG MESSAGE */}
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4">
-          <strong>Debug:</strong> Profile component rendered. Loans: {userLoans.length}
-        </div>
-        
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            {texts.title}
-          </h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              {texts.title}
+            </h1>
             <p className="text-gray-600 dark:text-gray-400">
               {language === 'tr' 
                 ? 'Hesap bilgilerinizi ve okuma istatistiklerinizi görüntüleyin'
