@@ -333,81 +333,50 @@ const Profile = () => {
             {/* Sağ Taraf - Ödünç Kitaplar ve Hesap Bilgileri */}
             <div className="space-y-8">
               {/* Ödünç Alınan Kitaplar */}
-              {/* Ödünç Alınan Kitaplar */}
-<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-    <BookOpen className="h-5 w-5 mr-2" />
-    {texts.myLoans} 
-    <span className="ml-2 bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded">
-      {userLoans.length}
-    </span>
-  </h2>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                  <BookOpen className="h-5 w-5 mr-2" />
+                  {texts.myLoans} ({userLoans.length})
+                </h2>
 
-  {/* DEBUG INFO */}
-  <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-700 rounded text-sm">
-    <div>Loans Loading: {loansLoading ? 'YES' : 'NO'}</div>
-    <div>Loans Count: {userLoans.length}</div>
-    <div>User: {user?.firstName} {user?.lastName}</div>
-  </div>
-
-  {loansLoading ? (
-    <div className="text-center py-8">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-      <p className="text-gray-600 dark:text-gray-400 mt-2">
-        {language === 'tr' ? 'Ödünç kitaplar yükleniyor...' : 'Loading borrowed books...'}
-      </p>
-    </div>
-  ) : userLoans.length === 0 ? (
-    <div className="text-center py-8">
-      <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-      <p className="text-gray-600 dark:text-gray-400 mb-4">
-        {texts.noLoans}
-      </p>
-      <p className="text-sm text-gray-500 dark:text-gray-400">
-        {language === 'tr' 
-          ? 'Kitaplar sayfasından kitap ödünç alabilirsiniz.' 
-          : 'You can borrow books from the books page.'
-        }
-      </p>
-    </div>
-  ) : (
-    <div className="space-y-4">
-      {userLoans.map((loan) => (
-        <div key={loan.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
-          <div className="flex items-center space-x-4 flex-1">
-            <img
-              src={loan.bookCover || '/images/default-book-cover.jpg'}
-              alt={loan.bookTitle}
-              className="w-12 h-16 object-cover rounded border"
-              onError={(e) => {
-                e.target.src = '/images/default-book-cover.jpg';
-              }}
-            />
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 dark:text-white">
-                {loan.bookTitle}
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 mt-2">
-                <div className="flex items-center">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  <span>{texts.borrowedDate}: {loan.borrowedDate}</span>
-                </div>
-                <div className="flex items-center">
-                  <Clock className="h-3 w-3 mr-1" />
-                  <span>{texts.dueDate}: {loan.dueDate}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <button className="btn-outline text-xs flex items-center gap-1 whitespace-nowrap">
-            {texts.viewDetails}
-            <ArrowRight className="h-3 w-3" />
-          </button>
-        </div>
-      ))}
-    </div>
-  )}
-</div>
+                {loansLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-gray-600 dark:text-gray-400 mt-2">Yükleniyor...</p>
+                  </div>
+                ) : userLoans.length === 0 ? (
+                  <div className="text-center py-8">
+                    <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {texts.noLoans}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {userLoans.map((loan) => (
+                      <div key={loan.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <img
+                            src={loan.bookCover}
+                            alt={loan.bookTitle}
+                            className="w-12 h-16 object-cover rounded"
+                          />
+                          <div>
+                            <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                              {loan.bookTitle}
+                            </h3>
+                            <div className="flex flex-col space-y-1 text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              <div className="flex items-center">
+                                <Calendar className="h-3 w-3 mr-1" />
+                                {texts.borrowedDate}: {loan.borrowedDate}
+                              </div>
+                              <div className="flex items-center">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {texts.dueDate}: {loan.dueDate}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                         <button className="btn-outline text-xs flex items-center gap-1">
                           {texts.viewDetails}
                           <ArrowRight className="h-3 w-3" />
