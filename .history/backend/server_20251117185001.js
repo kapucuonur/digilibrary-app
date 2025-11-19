@@ -1,0 +1,292 @@
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import dotenv from 'dotenv';
+import morgan from 'morgan';
+
+// Environment variables
+dotenv.config();
+
+const app = express();
+
+// Middleware
+app.use(helmet());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use(limiter);
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// Logging
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
+
+// MongoDB Atlas Connection
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log(`✅ MongoDB Atlas bağlantısı başarılı: ${conn.connection.host}`);
+  } catch (error) {
+    console.error('❌ MongoDB bağlantı hatası:', error.message);
+    process.exit(1);
+  }
+};
+
+connectDB();
+
+// Basit route'lar - API çalıştığını test etmek için
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'DigiLibrary API çalışıyor!',
+    timestamp: new Date().toISOString(),
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
+// Test kitaplar endpoint'i
+app.get('/api/books', async (req, res) => {
+  try {
+    const books = [
+      {
+        _id: '1',
+        title: 'Sefiller',
+        author: 'Victor Hugo',
+        category: 'Roman',
+        description: 'Fransa tarihini arka plan alan insanlık dramı',
+        coverImage: '/images/default-book-cover.jpg',
+        publishedYear: 1862,
+        publisher: 'İş Bankası Kültür Yayınları',
+        pageCount: 432,
+        availableCopies: 5,
+        totalCopies: 5,
+        averageRating: 4.7,
+        totalRatings: 128
+      },
+      {
+        _id: '2',
+        title: 'Suç ve Ceza',
+        author: 'Fyodor Dostoyevski',
+        category: 'Roman',
+        description: 'Raskolnikov\'un psikolojik çöküşünün hikayesi',
+        coverImage: '/images/default-book-cover.jpg',
+        publishedYear: 1866,
+        publisher: 'Can Yayınları',
+        pageCount: 704,
+        availableCopies: 3,
+        totalCopies: 3,
+        averageRating: 4.8,
+        totalRatings: 95
+      },
+      {
+        _id: '3',
+        title: 'Hayvan Çiftliği',
+        author: 'George Orwell',
+        category: 'Roman',
+        description: 'Distopik bir siyasi hiciv',
+        coverImage: '/images/default-book-cover.jpg',
+        publishedYear: 1945,
+        publisher: 'Can Yayınları',
+        pageCount: 152,
+        availableCopies: 7,
+        totalCopies: 7,
+        averageRating: 4.6,
+        totalRatings: 203
+      },
+      {
+        _id: '4',
+        title: '1984',
+        author: 'George Orwell',
+        category: 'Bilim Kurgu',
+        description: 'Distopik bir gelecek vizyonu',
+        coverImage: '/images/default-book-cover.jpg',
+        publishedYear: 1949,
+        publisher: 'Can Yayınları',
+        pageCount: 328,
+        availableCopies: 4,
+        totalCopies: 4,
+        averageRating: 4.7,
+        totalRatings: 156
+      },
+      {
+        _id: '5',
+        title: 'Küçük Prens',
+        author: 'Antoine de Saint-Exupéry',
+        category: 'Çocuk',
+        description: 'Felsefi bir çocuk klasiği',
+        coverImage: '/images/default-book-cover.jpg',
+        publishedYear: 1943,
+        publisher: 'Can Çocuk Yayınları',
+        pageCount: 96,
+        availableCopies: 8,
+        totalCopies: 8,
+        averageRating: 4.9,
+        totalRatings: 89
+      }
+    ];
+
+    res.json({
+      success: true,
+      data: books,
+      count: books.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Kitaplar yüklenirken hata oluştu'
+    });
+  }
+});
+
+// Auth endpoints
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { firstName, lastName, email, password } = req.body;
+    
+    // Basit validation
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tüm alanları doldurun'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Şifre en az 6 karakter olmalı'
+      });
+    }
+
+    // Mock user
+    const user = {
+      id: 'user_' + Date.now(),
+      firstName,
+      lastName,
+      email,
+      role: 'USER',
+      createdAt: new Date()
+    };
+
+    res.status(201).json({
+      success: true,
+      message: 'Kullanıcı başarıyla oluşturuldu',
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role
+      },
+      token: 'mock-jwt-token-' + Date.now()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Kayıt sırasında hata oluştu'
+    });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Mock login
+    if (email === 'test@example.com' && password === 'password123') {
+      res.json({
+        success: true,
+        message: 'Giriş başarılı',
+        user: {
+          id: 'user_123',
+          firstName: 'Test',
+          lastName: 'Kullanıcı',
+          email: 'test@example.com',
+          role: 'USER'
+        },
+        token: 'mock-jwt-token-123456'
+      });
+    } else {
+      res.status(401).json({
+        success: false,
+        message: 'Email veya şifre hatalı'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Giriş sırasında hata oluştu'
+    });
+  }
+});
+
+// Get user profile
+app.get('/api/auth/me', async (req, res) => {
+  try {
+    // Mock user data - gerçek uygulamada JWT token'dan alınacak
+    const user = {
+      id: 'user_123',
+      firstName: 'Test',
+      lastName: 'Kullanıcı',
+      email: 'test@example.com',
+      role: 'USER',
+      preferences: {
+        language: 'tr',
+        theme: 'light'
+      }
+    };
+
+    res.json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Kullanıcı bilgileri alınamadı'
+    });
+  }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ 
+    success: false, 
+    message: 'Bir hata oluştu!',
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error'
+  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ 
+    success: false, 
+    message: 'Route bulunamadı' 
+  });
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Backend server http://localhost:${PORT} portunda çalışıyor`);
+  console.log(`📚 DigiLibrary Backend Service Active`);
+  console.log(`🌐 Frontend: ${process.env.FRONTEND_URL}`);
+  console.log(`🗄️  Database: ${process.env.MONGODB_URI ? 'MongoDB Atlas' : 'Not configured'}`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`📖 Books API: http://localhost:${PORT}/api/books`);
+  console.log(`🔐 Auth API: http://localhost:${PORT}/api/auth/login`);
+});
