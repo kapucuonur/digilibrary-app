@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-const BookCard = ({ book, onBorrowSuccess, viewMode = 'grid', onBorrow }) => {
+const BookCard = ({ book, onBorrowSuccess, viewMode = 'grid' }) => {
   const { isAuthenticated } = useAuth();
   const [borrowing, setBorrowing] = useState(false);
   const { t, language } = useLanguage();
@@ -20,8 +20,7 @@ const BookCard = ({ book, onBorrowSuccess, viewMode = 'grid', onBorrow }) => {
     averageRating,
     totalRatings,
     availableCopies,
-    publishedYear,
-    googleBooksId
+    publishedYear
   } = book;
 
   const safeAverageRating = typeof averageRating === 'number' ? averageRating : 
@@ -52,25 +51,14 @@ const BookCard = ({ book, onBorrowSuccess, viewMode = 'grid', onBorrow }) => {
 
     try {
       setBorrowing(true);
+      const response = await loanService.borrow(_id);
       
-      // EĞER onBorrow PROP'U VARSA NETLIFY FUNCTION KULLAN
-      if (onBorrow) {
-        const bookId = googleBooksId || _id;
-        const result = await onBorrow(bookId);
-        toast.success(result.message);
-      } 
-      // YOKSA ESKİ loanService KULLAN
-      else {
-        const response = await loanService.borrow(_id);
-        toast.success(response.data.message);
-      }
-      
+      toast.success(response.data.message);
       if (onBorrowSuccess) {
         onBorrowSuccess();
       }
     } catch (error) {
-      console.error('Borrow error:', error);
-      toast.error(error.response?.data?.message || error.message || 
+      toast.error(error.response?.data?.message || 
         (language === 'tr' ? 'Ödünç alma başarısız' : 'Borrow failed')
       );
     } finally {
@@ -78,7 +66,6 @@ const BookCard = ({ book, onBorrowSuccess, viewMode = 'grid', onBorrow }) => {
     }
   };
 
-  // ... mevcut diğer fonksiyonlar değişmeden kalacak
   const getAuthorText = () => {
     return author || (language === 'tr' ? 'Yazar Bilinmiyor' : 'Unknown Author');
   };
@@ -268,7 +255,6 @@ export const BookCardSkeleton = ({ viewMode = 'grid' }) => {
 
           <div className="flex items-center gap-4 mb-3">
             <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded w-16"></div>
-            <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-12"></div>
             <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-12"></div>
             <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-12"></div>
             <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-12"></div>

@@ -38,41 +38,6 @@ const Books = () => {
     }
   };
 
-  // BORROW BOOK FONKSİYONU
-  const borrowBook = async (bookId) => {
-    try {
-      console.log(`🚀 Sending borrow request for book: ${bookId}`);
-      
-      const response = await fetch('/.netlify/functions/borrow', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ bookId })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('✅ Borrow successful:', data);
-      
-      // Kullanıcıya başarı mesajı göster
-      alert(data.message);
-      
-      // Kitapları yeniden yükle
-      loadBooks();
-      
-      return data;
-      
-    } catch (error) {
-      console.error('❌ Borrow failed:', error.message);
-      alert(`Ödünç alma başarısız: ${error.message}`);
-    }
-  };
-
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
       setSearchResults([]);
@@ -300,7 +265,6 @@ const Books = () => {
                     book={book} 
                     onBorrowSuccess={loadBooks}
                     viewMode={viewMode}
-                    onBorrow={borrowBook}  {/* 👈 BU SATIRI EKLEDİM */}
                   />
                 ))}
               </div>

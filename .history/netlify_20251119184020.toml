@@ -12,7 +12,7 @@
 
 [dev.environment]
   MONGODB_URI = "mongodb+srv://onurbenn:P93qRG@s9v-y9Le@trihonorcluster.dq8qfba.mongodb.net/?appName=TriHonorCluster"
-  GOOGLE_BOOKS_API_KEY = "AIzaSyAHQQncjxUWuh80mhD1ucIEFOyzS1XYVXc"
+  GOOGLE_BOOKS_API_KEY = "your_google_books_api_key_here"
 
 [[redirects]]
   from = "/*"
