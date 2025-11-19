@@ -37486,38 +37486,30 @@ __export(test_mongodb_exports, {
 module.exports = __toCommonJS(test_mongodb_exports);
 var import_mongodb = __toESM(require_lib3(), 1);
 var handler = async (event, context) => {
-  const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET, OPTIONS"
-  };
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 200, headers, body: "" };
-  }
   let client;
   try {
     const mongoUri = process.env.MONGODB_URI;
     if (!mongoUri) {
       return {
         statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: "MONGODB_URI not found in environment variables" })
+        body: JSON.stringify({
+          error: "MONGODB_URI is not set in environment variables",
+          envVars: Object.keys(process.env)
+        })
       };
     }
-    console.log("Testing MongoDB connection...");
+    console.log("Testing MongoDB connection with URI:", mongoUri.substring(0, 50) + "...");
     client = new import_mongodb.MongoClient(mongoUri, {
-      serverSelectionTimeoutMS: 5e3
+      serverSelectionTimeoutMS: 1e4
     });
     await client.connect();
     const db = client.db();
     const collections = await db.listCollections().toArray();
     const collectionNames = collections.map((col) => col.name);
-    console.log("Available collections:", collectionNames);
     const loansCount = await db.collection("loans").countDocuments();
     const booksCount = await db.collection("books").countDocuments();
     return {
       statusCode: 200,
-      headers,
       body: JSON.stringify({
         success: true,
         message: "MongoDB connection successful!",
@@ -37526,18 +37518,21 @@ var handler = async (event, context) => {
         counts: {
           loans: loansCount,
           books: booksCount
-        }
+        },
+        connectionString: mongoUri.substring(0, 30) + "..."
+        // Güvenlik için kısmi göster
       })
     };
   } catch (error) {
     console.error("MongoDB Test Error:", error);
     return {
       statusCode: 500,
-      headers,
       body: JSON.stringify({
+        success: false,
         error: "MongoDB connection failed",
         details: error.message,
-        mongoUri: process.env.MONGODB_URI ? "MONGODB_URI is set" : "MONGODB_URI is NOT set"
+        errorName: error.name,
+        errorCode: error.code
       })
     };
   } finally {
