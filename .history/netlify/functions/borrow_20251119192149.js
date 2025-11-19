@@ -4,7 +4,7 @@ import { MongoClient, ObjectId } from 'mongodb';
 export const handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
@@ -45,10 +45,12 @@ export const handler = async (event, context) => {
       // 1. Kitap bilgilerini al
       let bookTitle = 'Unknown Book';
       let bookCover = '/images/default-book-cover.jpg';
+      let bookAuthors = ['Unknown Author'];
 
       // Önce kendi database'imizde ara
       let book;
       
+      // ObjectId olarak dene
       try {
         book = await booksCollection.findOne({ _id: new ObjectId(bookId) });
       } catch (e) {
@@ -56,7 +58,8 @@ export const handler = async (event, context) => {
         book = await booksCollection.findOne({
           $or: [
             { googleBooksId: bookId },
-            { isbn: bookId }
+            { isbn: bookId },
+            { title: { $regex: bookId, $options: 'i' } }
           ]
         });
       }
@@ -64,6 +67,7 @@ export const handler = async (event, context) => {
       if (book) {
         bookTitle = book.title || 'Unknown Book';
         bookCover = book.coverImage || book.thumbnail || '/images/default-book-cover.jpg';
+        bookAuthors = book.authors || ['Unknown Author'];
         console.log('📚 Book found in database:', bookTitle);
       } else {
         // Google Books API'den al
@@ -77,6 +81,7 @@ export const handler = async (event, context) => {
             const bookData = await googleResponse.json();
             bookTitle = bookData.volumeInfo?.title || 'Unknown Book';
             bookCover = bookData.volumeInfo?.imageLinks?.thumbnail || '/images/default-book-cover.jpg';
+            bookAuthors = bookData.volumeInfo?.authors || ['Unknown Author'];
             console.log('📚 Book from Google API:', bookTitle);
           }
         } catch (googleError) {
@@ -87,7 +92,6 @@ export const handler = async (event, context) => {
       // 2. Aynı kitap zaten ödünç alınmış mı kontrol et
       const existingLoan = await loansCollection.findOne({
         bookId: bookId,
-        userId: '1', // loans.js ile aynı userId
         status: 'active'
       });
 
@@ -96,19 +100,21 @@ export const handler = async (event, context) => {
           statusCode: 400,
           headers,
           body: JSON.stringify({ 
-            error: `"${bookTitle}" kitabı zaten ödünç almışsınız` 
+            error: `"${bookTitle}" kitabı şu anda başka bir kullanıcı tarafından ödünç alınmış` 
           })
         };
       }
 
-      // 3. Yeni ödünç kaydı oluştur - loans.js formatında
+      // 3. Yeni ödünç kaydı oluştur
       const newLoan = {
-        userId: '1', // 🔥 loans.js ile AYNI userId
+        userId: 'demo-user-id-123', // 🔥 GERÇEK UYGULAMADA AUTH TOKEN'DAN AL
+        userEmail: 'demo@example.com',
         bookId: bookId,
         bookTitle: bookTitle,
         bookCover: bookCover,
-        borrowedDate: new Date().toISOString(),
-        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 gün sonra
+        bookAuthors: bookAuthors,
+        borrowedDate: new Date(),
+        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 gün sonra
         status: 'active',
         createdAt: new Date(),
         updatedAt: new Date()
@@ -117,21 +123,26 @@ export const handler = async (event, context) => {
       const result = await loansCollection.insertOne(newLoan);
       console.log('✅ Loan saved to MongoDB, ID:', result.insertedId);
 
+      // 4. Kitabın availableCopies'ını güncelle (eğer varsa)
+      if (book && book.availableCopies !== undefined) {
+        await booksCollection.updateOne(
+          { _id: book._id },
+          { $inc: { availableCopies: -1 } }
+        );
+        console.log('📚 Book available copies updated');
+      }
+
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({ 
           success: true,
           message: `🎉 "${bookTitle}" kitabı başarıyla ödünç alındı!`,
-          data: {
-            id: result.insertedId.toString(),
-            bookId: bookId,
-            bookTitle: bookTitle,
-            bookCover: bookCover,
-            borrowedDate: newLoan.borrowedDate,
-            dueDate: newLoan.dueDate,
-            status: 'active'
-          }
+          loanId: result.insertedId.toString(),
+          dueDate: newLoan.dueDate.toISOString().split('T')[0],
+          bookId: bookId,
+          bookTitle: bookTitle,
+          bookCover: bookCover
         })
       };
 

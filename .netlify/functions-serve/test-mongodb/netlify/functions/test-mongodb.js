@@ -2396,7 +2396,7 @@ var require_bson = __commonJS({
     };
     var PROCESS_UNIQUE = null;
     var __idCache = /* @__PURE__ */ new WeakMap();
-    var ObjectId2 = class _ObjectId extends BSONValue {
+    var ObjectId = class _ObjectId extends BSONValue {
       get _bsontype() {
         return "ObjectId";
       }
@@ -2589,7 +2589,7 @@ var require_bson = __commonJS({
         return `new ObjectId(${inspect(this.toHexString(), options)})`;
       }
     };
-    ObjectId2.index = Math.floor(Math.random() * 16777215);
+    ObjectId.index = Math.floor(Math.random() * 16777215);
     function internalCalculateObjectSize(object, serializeFunctions, ignoreUndefined) {
       let totalLength = 4 + 1;
       if (Array.isArray(object)) {
@@ -2960,7 +2960,7 @@ var require_bson = __commonJS({
           const oid = ByteUtils.allocateUnsafe(12);
           for (let i2 = 0; i2 < 12; i2++)
             oid[i2] = buffer2[index + i2];
-          value = new ObjectId2(oid);
+          value = new ObjectId(oid);
           index = index + 12;
         } else if (elementType === BSON_DATA_INT && promoteValues === false) {
           value = new Int32(NumberUtils.getInt32LE(buffer2, index));
@@ -3179,7 +3179,7 @@ var require_bson = __commonJS({
           const oidBuffer = ByteUtils.allocateUnsafe(12);
           for (let i2 = 0; i2 < 12; i2++)
             oidBuffer[i2] = buffer2[index + i2];
-          const oid = new ObjectId2(oidBuffer);
+          const oid = new ObjectId(oidBuffer);
           index = index + 12;
           value = new DBRef(namespace, oid);
         } else {
@@ -3754,7 +3754,7 @@ var require_bson = __commonJS({
       return value != null && typeof value === "object" && "_bsontype" in value && typeof value._bsontype === "string";
     }
     var keysToCodecs = {
-      $oid: ObjectId2,
+      $oid: ObjectId,
       $binary: Binary,
       $uuid: Binary,
       $symbol: BSONSymbol,
@@ -3940,7 +3940,7 @@ var require_bson = __commonJS({
       Long: (o) => Long.fromBits(o.low != null ? o.low : o.low_, o.low != null ? o.high : o.high_, o.low != null ? o.unsigned : o.unsigned_),
       MaxKey: () => new MaxKey(),
       MinKey: () => new MinKey(),
-      ObjectId: (o) => new ObjectId2(o),
+      ObjectId: (o) => new ObjectId(o),
       BSONRegExp: (o) => new BSONRegExp(o.pattern, o.options),
       BSONSymbol: (o) => new BSONSymbol(o.value),
       Timestamp: (o) => Timestamp.fromBits(o.low, o.high)
@@ -4187,7 +4187,7 @@ var require_bson = __commonJS({
       Long,
       MaxKey,
       MinKey,
-      ObjectId: ObjectId2,
+      ObjectId,
       Timestamp,
       UUID,
       calculateObjectSize,
@@ -4217,7 +4217,7 @@ var require_bson = __commonJS({
     exports2.Long = Long;
     exports2.MaxKey = MaxKey;
     exports2.MinKey = MinKey;
-    exports2.ObjectId = ObjectId2;
+    exports2.ObjectId = ObjectId;
     exports2.Timestamp = Timestamp;
     exports2.UUID = UUID;
     exports2.calculateObjectSize = calculateObjectSize;
@@ -37478,147 +37478,76 @@ var require_lib3 = __commonJS({
   }
 });
 
-// netlify/functions/borrow.js
-var borrow_exports = {};
-__export(borrow_exports, {
+// netlify/functions/test-mongodb.js
+var test_mongodb_exports = {};
+__export(test_mongodb_exports, {
   handler: () => handler
 });
-module.exports = __toCommonJS(borrow_exports);
+module.exports = __toCommonJS(test_mongodb_exports);
 var import_mongodb = __toESM(require_lib3(), 1);
 var handler = async (event, context) => {
   const headers = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Methods": "POST, OPTIONS"
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, OPTIONS"
   };
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers, body: "" };
   }
-  if (event.httpMethod === "POST") {
-    let client;
-    try {
-      const mongoUri = process.env.MONGODB_URI;
-      if (!mongoUri) {
-        throw new Error("MONGODB_URI is not defined");
-      }
-      const { bookId } = JSON.parse(event.body);
-      if (!bookId) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: "Book ID is required" })
-        };
-      }
-      console.log("\u{1F4D6} Borrowing book ID:", bookId);
-      client = new import_mongodb.MongoClient(mongoUri);
-      await client.connect();
-      console.log("\u2705 Connected to MongoDB");
-      const db = client.db();
-      const loansCollection = db.collection("loans");
-      const booksCollection = db.collection("books");
-      let bookTitle = "Unknown Book";
-      let bookCover = "/images/default-book-cover.jpg";
-      let book;
-      try {
-        book = await booksCollection.findOne({ _id: new import_mongodb.ObjectId(bookId) });
-      } catch (e) {
-        book = await booksCollection.findOne({
-          $or: [
-            { googleBooksId: bookId },
-            { isbn: bookId }
-          ]
-        });
-      }
-      if (book) {
-        bookTitle = book.title || "Unknown Book";
-        bookCover = book.coverImage || book.thumbnail || "/images/default-book-cover.jpg";
-        console.log("\u{1F4DA} Book found in database:", bookTitle);
-      } else {
-        try {
-          console.log("\u{1F50D} Fetching from Google Books API...");
-          const googleResponse = await fetch(
-            `https://www.googleapis.com/books/v1/volumes/${bookId}`
-          );
-          if (googleResponse.ok) {
-            const bookData = await googleResponse.json();
-            bookTitle = bookData.volumeInfo?.title || "Unknown Book";
-            bookCover = bookData.volumeInfo?.imageLinks?.thumbnail || "/images/default-book-cover.jpg";
-            console.log("\u{1F4DA} Book from Google API:", bookTitle);
-          }
-        } catch (googleError) {
-          console.warn("\u26A0\uFE0F Google Books API error:", googleError.message);
-        }
-      }
-      const existingLoan = await loansCollection.findOne({
-        bookId,
-        userId: "1",
-        // loans.js ile aynı userId
-        status: "active"
-      });
-      if (existingLoan) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({
-            error: `"${bookTitle}" kitab\u0131 zaten \xF6d\xFCn\xE7 alm\u0131\u015Fs\u0131n\u0131z`
-          })
-        };
-      }
-      const newLoan = {
-        userId: "1",
-        // 🔥 loans.js ile AYNI userId
-        bookId,
-        bookTitle,
-        bookCover,
-        borrowedDate: (/* @__PURE__ */ new Date()).toISOString(),
-        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1e3).toISOString(),
-        // 14 gün sonra
-        status: "active",
-        createdAt: /* @__PURE__ */ new Date(),
-        updatedAt: /* @__PURE__ */ new Date()
-      };
-      const result = await loansCollection.insertOne(newLoan);
-      console.log("\u2705 Loan saved to MongoDB, ID:", result.insertedId);
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          success: true,
-          message: `\u{1F389} "${bookTitle}" kitab\u0131 ba\u015Far\u0131yla \xF6d\xFCn\xE7 al\u0131nd\u0131!`,
-          data: {
-            id: result.insertedId.toString(),
-            bookId,
-            bookTitle,
-            bookCover,
-            borrowedDate: newLoan.borrowedDate,
-            dueDate: newLoan.dueDate,
-            status: "active"
-          }
-        })
-      };
-    } catch (error) {
-      console.error("\u274C Borrow Function Error:", error);
+  let client;
+  try {
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({
-          error: "\xD6d\xFCn\xE7 alma ba\u015Far\u0131s\u0131z: " + error.message
-        })
+        body: JSON.stringify({ error: "MONGODB_URI not found in environment variables" })
       };
-    } finally {
-      if (client) {
-        await client.close();
-      }
+    }
+    console.log("Testing MongoDB connection...");
+    client = new import_mongodb.MongoClient(mongoUri, {
+      serverSelectionTimeoutMS: 5e3
+    });
+    await client.connect();
+    const db = client.db();
+    const collections = await db.listCollections().toArray();
+    const collectionNames = collections.map((col) => col.name);
+    console.log("Available collections:", collectionNames);
+    const loansCount = await db.collection("loans").countDocuments();
+    const booksCount = await db.collection("books").countDocuments();
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        message: "MongoDB connection successful!",
+        database: db.databaseName,
+        collections: collectionNames,
+        counts: {
+          loans: loansCount,
+          books: booksCount
+        }
+      })
+    };
+  } catch (error) {
+    console.error("MongoDB Test Error:", error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: "MongoDB connection failed",
+        details: error.message,
+        mongoUri: process.env.MONGODB_URI ? "MONGODB_URI is set" : "MONGODB_URI is NOT set"
+      })
+    };
+  } finally {
+    if (client) {
+      await client.close();
     }
   }
-  return {
-    statusCode: 404,
-    headers,
-    body: JSON.stringify({ error: "Method not allowed" })
-  };
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   handler
 });
-//# sourceMappingURL=borrow.js.map
+//# sourceMappingURL=test-mongodb.js.map

@@ -1,10 +1,10 @@
 // netlify/functions/borrow.js
-import { MongoClient, ObjectId } from 'mongodb';
+import { MongoClient } from 'mongodb';
 
 export const handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
@@ -16,10 +16,18 @@ export const handler = async (event, context) => {
     let client;
     
     try {
+      // MongoDB URI kontrolü
       const mongoUri = process.env.MONGODB_URI;
       if (!mongoUri) {
-        throw new Error('MONGODB_URI is not defined');
+        console.error('❌ MONGODB_URI is not defined');
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Database configuration error' })
+        };
       }
+
+      console.log('🔗 MongoDB URI found, connecting...');
 
       const { bookId } = JSON.parse(event.body);
       
@@ -34,7 +42,11 @@ export const handler = async (event, context) => {
       console.log('📖 Borrowing book ID:', bookId);
 
       // MongoDB'ye bağlan
-      client = new MongoClient(mongoUri);
+      client = new MongoClient(mongoUri, {
+        serverSelectionTimeoutMS: 5000,
+        connectTimeoutMS: 10000,
+      });
+
       await client.connect();
       console.log('✅ Connected to MongoDB');
 
@@ -47,23 +59,16 @@ export const handler = async (event, context) => {
       let bookCover = '/images/default-book-cover.jpg';
 
       // Önce kendi database'imizde ara
-      let book;
-      
-      try {
-        book = await booksCollection.findOne({ _id: new ObjectId(bookId) });
-      } catch (e) {
-        // ObjectId değilse, googleBooksId veya diğer alanlarda ara
-        book = await booksCollection.findOne({
-          $or: [
-            { googleBooksId: bookId },
-            { isbn: bookId }
-          ]
-        });
-      }
+      const book = await booksCollection.findOne({ 
+        $or: [
+          { _id: bookId },
+          { googleBooksId: bookId }
+        ]
+      });
 
       if (book) {
         bookTitle = book.title || 'Unknown Book';
-        bookCover = book.coverImage || book.thumbnail || '/images/default-book-cover.jpg';
+        bookCover = book.coverImage || '/images/default-book-cover.jpg';
         console.log('📚 Book found in database:', bookTitle);
       } else {
         // Google Books API'den al
@@ -85,9 +90,9 @@ export const handler = async (event, context) => {
       }
 
       // 2. Aynı kitap zaten ödünç alınmış mı kontrol et
+      // 🔥 NOT: Şimdilik tüm kullanıcılar için kontrol ediyoruz
       const existingLoan = await loansCollection.findOne({
         bookId: bookId,
-        userId: '1', // loans.js ile aynı userId
         status: 'active'
       });
 
@@ -96,19 +101,19 @@ export const handler = async (event, context) => {
           statusCode: 400,
           headers,
           body: JSON.stringify({ 
-            error: `"${bookTitle}" kitabı zaten ödünç almışsınız` 
+            error: 'Bu kitap şu anda başka bir kullanıcı tarafından ödünç alınmış' 
           })
         };
       }
 
-      // 3. Yeni ödünç kaydı oluştur - loans.js formatında
+      // 3. Yeni ödünç kaydı oluştur
       const newLoan = {
-        userId: '1', // 🔥 loans.js ile AYNI userId
+        userId: 'demo-user', // 🔥 GERÇEK UYGULAMADA AUTH TOKEN'DAN AL
         bookId: bookId,
         bookTitle: bookTitle,
         bookCover: bookCover,
-        borrowedDate: new Date().toISOString(),
-        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 gün sonra
+        borrowedDate: new Date(),
+        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 gün sonra
         status: 'active',
         createdAt: new Date(),
         updatedAt: new Date()
@@ -123,31 +128,36 @@ export const handler = async (event, context) => {
         body: JSON.stringify({ 
           success: true,
           message: `🎉 "${bookTitle}" kitabı başarıyla ödünç alındı!`,
-          data: {
-            id: result.insertedId.toString(),
-            bookId: bookId,
-            bookTitle: bookTitle,
-            bookCover: bookCover,
-            borrowedDate: newLoan.borrowedDate,
-            dueDate: newLoan.dueDate,
-            status: 'active'
-          }
+          loanId: result.insertedId.toString(),
+          dueDate: newLoan.dueDate.toISOString().split('T')[0],
+          bookId: bookId,
+          bookTitle: bookTitle
         })
       };
 
     } catch (error) {
-      console.error('❌ Borrow Function Error:', error);
+      console.error('❌ MongoDB Borrow Error:', error);
+      
+      let errorMessage = 'Ödünç alma başarısız';
+      if (error.name === 'MongoServerSelectionError') {
+        errorMessage = 'Database bağlantı hatası. Lütfen daha sonra tekrar deneyin.';
+      } else if (error.message.includes('ENOTFOUND')) {
+        errorMessage = 'Database sunucusuna bağlanılamıyor.';
+      }
       
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({ 
-          error: 'Ödünç alma başarısız: ' + error.message
+          error: errorMessage,
+          details: error.message 
         })
       };
     } finally {
       if (client) {
-        await client.close();
+        await client.close().catch(closeErr => {
+          console.error('Error closing MongoDB connection:', closeErr);
+        });
       }
     }
   }
