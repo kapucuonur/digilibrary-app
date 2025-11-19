@@ -37466,51 +37466,53 @@ exports.handler = async function(event, context) {
   try {
     const path = event.path;
     console.log("\u{1F4DA} Loans function path:", path);
-    const MONGODB_URI = process.env.MONGODB_URI;
-    const client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    console.log("\u2705 Connected to MongoDB");
-    const db = client.db();
-    const loansCollection = db.collection("loans");
     if (path === "/.netlify/functions/loans/my-loans" && event.httpMethod === "GET") {
-      console.log("\u{1F4D6} Getting user loans from DATABASE");
-      const userLoans = await loansCollection.find({
-        userId: "1",
-        // 🔥 Gerçek uygulamada token'dan alınacak
-        status: "active"
-      }).toArray();
-      console.log("\u2705 Database loans:", userLoans);
-      const formattedLoans = userLoans.map((loan) => ({
-        id: loan._id.toString(),
-        bookId: loan.bookId,
-        bookTitle: loan.bookTitle || "Unknown Book",
-        bookCover: loan.bookCover || "/images/default-book-cover.jpg",
-        borrowedDate: loan.borrowedDate,
-        dueDate: loan.dueDate,
-        status: loan.status
-      }));
-      await client.close();
+      console.log("\u{1F4D6} Getting user loans");
+      const mockLoans = [
+        {
+          id: "mock-loan-1",
+          bookId: "x_zOCwAAQBAJ",
+          bookTitle: "Demo Kitap 1",
+          bookCover: "/images/default-book-cover.jpg",
+          borrowedDate: (/* @__PURE__ */ new Date()).toISOString(),
+          dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1e3).toISOString(),
+          status: "active"
+        },
+        {
+          id: "mock-loan-2",
+          bookId: "uJlLw50Xk14C",
+          bookTitle: "Demo Kitap 2",
+          bookCover: "/images/default-book-cover.jpg",
+          borrowedDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1e3).toISOString(),
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1e3).toISOString(),
+          status: "active"
+        }
+      ];
+      console.log("\u2705 Returning mock loans:", mockLoans.length, "items");
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           success: true,
-          data: formattedLoans
+          data: mockLoans
         })
       };
     }
-    await client.close();
     return {
       statusCode: 404,
       headers,
       body: JSON.stringify({ error: "Route not found: " + path })
     };
   } catch (error) {
-    console.error("\u274C Loans database error:", error);
+    console.error("\u274C Loans function error:", error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: "Database error: " + error.message })
+      body: JSON.stringify({
+        error: "Server error: " + error.message,
+        // Mock data dön - kullanıcı en azından boş liste görsün
+        data: []
+      })
     };
   }
 };

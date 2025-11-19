@@ -37513,38 +37513,37 @@ var handler = async (event, context) => {
       console.log("\u{1F4D6} Borrowing book ID:", bookId);
       client = new import_mongodb.MongoClient(mongoUri, {
         serverSelectionTimeoutMS: 1e4,
-        connectTimeoutMS: 1e4,
-        socketTimeoutMS: 2e4
+        connectTimeoutMS: 1e4
       });
       console.log("\u{1F504} Connecting to MongoDB...");
       await client.connect();
-      console.log("\u2705 Connected to MongoDB");
+      console.log("\u2705 Connected to MongoDB successfully!");
       const db = client.db();
+      console.log("\u{1F4CA} Using database:", db.databaseName);
       const loansCollection = db.collection("loans");
       const booksCollection = db.collection("books");
-      console.log("\u{1F4DA} Checking if book exists...");
       let bookTitle = "Unknown Book";
       let bookCover = "/images/default-book-cover.jpg";
-      let book;
-      try {
-        book = await booksCollection.findOne({ _id: new import_mongodb.ObjectId(bookId) });
-      } catch (e) {
-        book = await booksCollection.findOne({
-          $or: [
-            { googleBooksId: bookId },
-            { isbn: bookId },
-            { title: { $regex: bookId, $options: "i" } }
-          ]
-        });
-      }
+      let book = await booksCollection.findOne({ googleBooksId: bookId });
       if (book) {
         bookTitle = book.title || "Unknown Book";
-        bookCover = book.coverImage || book.thumbnail || "/images/default-book-cover.jpg";
+        bookCover = book.coverImage || "/images/default-book-cover.jpg";
         console.log("\u{1F4DA} Book found in database:", bookTitle);
       } else {
-        console.log("\u{1F4DA} Book not found in database, using default info");
+        try {
+          const googleResponse = await fetch(
+            `https://www.googleapis.com/books/v1/volumes/${bookId}`
+          );
+          if (googleResponse.ok) {
+            const bookData = await googleResponse.json();
+            bookTitle = bookData.volumeInfo?.title || "Unknown Book";
+            bookCover = bookData.volumeInfo?.imageLinks?.thumbnail || "/images/default-book-cover.jpg";
+            console.log("\u{1F4DA} Book from Google API:", bookTitle);
+          }
+        } catch (googleError) {
+          console.warn("Google Books API error:", googleError.message);
+        }
       }
-      console.log("\u{1F50D} Checking for existing loans...");
       const existingLoan = await loansCollection.findOne({
         bookId,
         userId: "1",
@@ -37559,7 +37558,6 @@ var handler = async (event, context) => {
           })
         };
       }
-      console.log("\u{1F4BE} Creating new loan...");
       const newLoan = {
         userId: "1",
         bookId,
@@ -37591,34 +37589,17 @@ var handler = async (event, context) => {
         })
       };
     } catch (error) {
-      console.error("\u274C BORROW FUNCTION ERROR:", error);
-      console.error("\u{1F50D} Error details:", {
-        name: error.name,
-        message: error.message,
-        code: error.code,
-        stack: error.stack
-      });
-      let errorMessage = "\xD6d\xFCn\xE7 alma ba\u015Far\u0131s\u0131z";
-      if (error.name === "MongoServerSelectionError") {
-        errorMessage = "Database ba\u011Flant\u0131 hatas\u0131. L\xFCtfen daha sonra tekrar deneyin.";
-      } else if (error.message.includes("ENOTFOUND")) {
-        errorMessage = "Database sunucusuna ba\u011Flan\u0131lam\u0131yor. MongoDB connection string kontrol edin.";
-      } else if (error.message.includes("MONGODB_URI")) {
-        errorMessage = "MongoDB ba\u011Flant\u0131 ayarlar\u0131 eksik. L\xFCtfen sistem y\xF6neticinize ba\u015Fvurun.";
-      }
+      console.error("\u274C BORROW ERROR:", error);
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({
-          error: errorMessage,
-          details: error.message
+          error: "\xD6d\xFCn\xE7 alma ba\u015Far\u0131s\u0131z: " + error.message
         })
       };
     } finally {
       if (client) {
-        await client.close().catch((closeErr) => {
-          console.error("Error closing connection:", closeErr);
-        });
+        await client.close();
         console.log("\u{1F50C} MongoDB connection closed");
       }
     }
