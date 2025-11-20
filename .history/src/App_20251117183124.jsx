@@ -12,7 +12,6 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import LoadingSpinner from './components/common/LoadingSpinner';
-import Chatbot from './components/Chatbot/Chatbot'; // 👈 BU SATIRI EKLE
 
 // Pages (Lazy loaded)
 const Home = React.lazy(() => import('./pages/Home'));
@@ -47,9 +46,6 @@ function App() {
                 </React.Suspense>
               </main>
               <Footer />
-              
-              {/* 👇 CHATBOT COMPONENT'İNİ BURAYA EKLE */}
-              <Chatbot />
             </div>
             <ToastContainer
               position="top-right"
