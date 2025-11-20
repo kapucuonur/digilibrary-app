@@ -1,75 +1,93 @@
 // netlify/functions/loans.js
-const { MongoClient } = require('mongodb');
+import { MongoClient } from 'mongodb';
 
-exports.handler = async function(event, context) {
+export const handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, OPTIONS'
   };
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
 
-  try {
-    const path = event.path;
-    console.log('📚 Loans function path:', path);
-
-    // ÖDÜNÇ KİTAPLARIMI GETİR
-    if (path === '/.netlify/functions/loans/my-loans' && event.httpMethod === 'GET') {
-      console.log('📖 Getting user loans');
+  if (event.httpMethod === 'GET' && event.path.includes('/my-loans')) {
+    let client;
+    
+    try {
+      const mongoUri = process.env.MONGODB_URI;
+      console.log('🔗 Loans function - MongoDB URI:', mongoUri ? 'SET' : 'NOT SET');
       
-      // MOCK DATA - MongoDB bağlantısı çözülene kadar
-      const mockLoans = [
-        {
-          id: 'mock-loan-1',
-          bookId: 'x_zOCwAAQBAJ',
-          bookTitle: 'Demo Kitap 1',
-          bookCover: '/images/default-book-cover.jpg',
-          borrowedDate: new Date().toISOString(),
-          dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-          status: 'active'
-        },
-        {
-          id: 'mock-loan-2', 
-          bookId: 'uJlLw50Xk14C',
-          bookTitle: 'Demo Kitap 2',
-          bookCover: '/images/default-book-cover.jpg',
-          borrowedDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          status: 'active'
-        }
-      ];
+      if (!mongoUri) {
+        throw new Error('MONGODB_URI environment variable is not set');
+      }
 
-      console.log('✅ Returning mock loans:', mockLoans.length, 'items');
+      // MongoDB'ye bağlan
+      client = new MongoClient(mongoUri, {
+        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 10000,
+      });
+
+      console.log('🔄 Connecting to MongoDB for loans...');
+      await client.connect();
+      console.log('✅ Connected to MongoDB successfully!');
+
+      const db = client.db();
+      const loansCollection = db.collection('loans');
+
+      console.log('📖 Getting user loans from database...');
+      
+      // Database'den gerçek data çek
+      const userLoans = await loansCollection.find({ 
+        userId: '1', // Şimdilik sabit user
+        status: 'active' 
+      }).sort({ borrowedDate: -1 }).toArray();
+      
+      console.log('✅ Found loans in database:', userLoans.length);
+
+      // Format response
+      const formattedLoans = userLoans.map(loan => ({
+        id: loan._id.toString(),
+        bookId: loan.bookId,
+        bookTitle: loan.bookTitle || 'Unknown Book',
+        bookCover: loan.bookCover || '/images/default-book-cover.jpg',
+        borrowedDate: loan.borrowedDate,
+        dueDate: loan.dueDate,
+        status: loan.status
+      }));
 
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({ 
           success: true,
-          data: mockLoans
+          data: formattedLoans
         })
       };
+
+    } catch (error) {
+      console.error('❌ Loans database error:', error);
+      
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Kitaplar yüklenirken hata: ' + error.message,
+          data: [] // Hata durumunda boş array
+        })
+      };
+    } finally {
+      if (client) {
+        await client.close();
+        console.log('🔌 MongoDB connection closed');
+      }
     }
-
-    return {
-      statusCode: 404,
-      headers,
-      body: JSON.stringify({ error: 'Route not found: ' + path })
-    };
-
-  } catch (error) {
-    console.error('❌ Loans function error:', error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ 
-        error: 'Server error: ' + error.message,
-        // Mock data dön - kullanıcı en azından boş liste görsün
-        data: []
-      })
-    };
   }
+
+  return {
+    statusCode: 404,
+    headers,
+    body: JSON.stringify({ error: 'Route not found' })
+  };
 };
