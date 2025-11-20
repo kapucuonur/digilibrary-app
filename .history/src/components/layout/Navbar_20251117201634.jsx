@@ -145,26 +145,13 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* 👇 MOBILE SECTION - DİL SEÇİCİ EKLENDİ */}
-          <div className="md:hidden flex items-center space-x-2">
-            {/* Mobile Language Selector */}
-            <select
-              value={language}
-              onChange={(e) => changeLanguage(e.target.value)}
-              className="form-input py-1 px-2 text-sm w-16 border-gray-300 dark:border-gray-600 mobile-language-select"
-            >
-              <option value="tr">TR</option>
-              <option value="en">EN</option>
-            </select>
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="p-2 rounded-md text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
-            >
-              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
-          </div>
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="md:hidden p-2 rounded-md text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
+          >
+            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
 
         {/* Mobile Navigation */}
