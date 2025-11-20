@@ -3,9 +3,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Edit3, Key, Calendar, BookOpen, X, Save, Clock, ArrowRight } from 'lucide-react';
 import { loanService } from '../services/api';
+import { toast } from 'react-toastify';
 
 const Profile = () => {
-  console.log('🎯 PROFILE COMPONENT RENDERED!'); // Bu satır çalışıyor mu?
+  console.log('🎯 PROFILE COMPONENT RENDERED!');
   
   const { user, updateProfile, changePassword } = useAuth();
   const { t, language } = useLanguage();
@@ -18,57 +19,63 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  // Profile component'ine ekle
-const [refreshCounter, setRefreshCounter] = useState(0);
-
-const handleManualRefresh = () => {
-  console.log('🔄 MANUAL REFRESH TRIGGERED');
-  setRefreshCounter(prev => prev + 1);
-};
-
-// Dashboard component'inde
-useEffect(() => {
-  console.log('🔥 DASHBOARD USEFFECT FIRED!');
+  const [refreshCounter, setRefreshCounter] = useState(0);
   
-  const loadUserLoans = async () => {
-    try {
-      console.log('🔄 Starting to load user loans...');
-      setLoansLoading(true);
-      
-      const response = await loanService.getMyLoans();
-      console.log('✅ Loans API Response:', response);
-      
-      if (response.data && response.data.success) {
-        console.log('🎉 Loans found:', response.data.data.length, 'items');
-        setUserLoans(response.data.data);
-      } else {
-        console.log('⚠️ No loans data in response, using empty array');
+  // FORM STATE'LERİ
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    phone: ''
+  });
+  
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  // ÖDÜNÇ KİTAPLARI YÜKLE
+  useEffect(() => {
+    console.log('🔥 PROFILE USEFFECT FIRED! Refresh counter:', refreshCounter);
+    
+    const loadUserLoans = async () => {
+      try {
+        console.log('🔄 Starting to load user loans...');
+        setLoansLoading(true);
+        
+        const response = await loanService.getMyLoans();
+        console.log('✅ Loans API Response:', response);
+        
+        if (response.data && response.data.success) {
+          console.log('🎉 Loans found:', response.data.data.length, 'items');
+          setUserLoans(response.data.data);
+        } else {
+          console.log('⚠️ No loans data in response, using empty array');
+          setUserLoans([]);
+        }
+      } catch (error) {
+        console.error('❌ Error loading loans:', error);
+        // Hata durumunda bile boş array set et
         setUserLoans([]);
+        
+        // Kullanıcıya bilgi ver
+        toast.error(language === 'tr' 
+          ? 'Kitaplar yüklenirken geçici bir sorun oluştu' 
+          : 'Temporary issue while loading books'
+        );
+      } finally {
+        setLoansLoading(false);
+        console.log('🏁 Loans loading finished');
       }
-    } catch (error) {
-      console.error('❌ Error loading loans:', error);
-      // Hata durumunda bile boş array set et
-      setUserLoans([]);
-      
-      // Kullanıcıya bilgi ver
-      toast.error('Kitaplar yüklenirken geçici bir sorun oluştu');
-    } finally {
-      setLoansLoading(false);
-      console.log('🏁 Loans loading finished');
-    }
+    };
+
+    loadUserLoans();
+  }, [refreshCounter, language]);
+
+  const handleManualRefresh = () => {
+    console.log('🔄 MANUAL REFRESH TRIGGERED');
+    setRefreshCounter(prev => prev + 1);
   };
-
-  loadUserLoans();
-}, []);
-
-// JSX'e refresh butonu ekle
-<button 
-  onClick={handleManualRefresh}
-  className="bg-blue-500 text-white px-4 py-2 rounded"
->
-  🔄 Loans'ı Yenile
-</button>
 
   // Mock user data - loans sayısını güncelle
   const userData = {
@@ -211,7 +218,8 @@ useEffect(() => {
         noLoans: 'Henüz ödünç aldığınız kitap yok',
         borrowedDate: 'Alınma Tarihi',
         dueDate: 'Son Teslim Tarihi',
-        viewDetails: 'Detayları Gör'
+        viewDetails: 'Detayları Gör',
+        refresh: 'Yenile'
       };
     } else {
       return {
@@ -244,27 +252,34 @@ useEffect(() => {
         noLoans: 'You have no borrowed books yet',
         borrowedDate: 'Borrowed Date',
         dueDate: 'Due Date',
-        viewDetails: 'View Details'
+        viewDetails: 'View Details',
+        refresh: 'Refresh'
       };
     }
   };
 
   const texts = getTexts();
 
+  // Tarih formatlama fonksiyonu
+  const formatDate = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US');
+    } catch (error) {
+      return dateString;
+    }
+  };
+
   return (
-  <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-    <div className="container mx-auto px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* DEBUG MESSAGE */}
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4">
-          <strong>Debug:</strong> Profile component rendered. Loans: {userLoans.length}
-        </div>
-        
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            {texts.title}
-          </h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto">
+          
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              {texts.title}
+            </h1>
             <p className="text-gray-600 dark:text-gray-400">
               {language === 'tr' 
                 ? 'Hesap bilgilerinizi ve okuma istatistiklerinizi görüntüleyin'
@@ -350,81 +365,82 @@ useEffect(() => {
             {/* Sağ Taraf - Ödünç Kitaplar ve Hesap Bilgileri */}
             <div className="space-y-8">
               {/* Ödünç Alınan Kitaplar */}
-              {/* Ödünç Alınan Kitaplar */}
-<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-    <BookOpen className="h-5 w-5 mr-2" />
-    {texts.myLoans} 
-    <span className="ml-2 bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded">
-      {userLoans.length}
-    </span>
-  </h2>
-
-  {/* DEBUG INFO */}
-  <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-700 rounded text-sm">
-    <div>Loans Loading: {loansLoading ? 'YES' : 'NO'}</div>
-    <div>Loans Count: {userLoans.length}</div>
-    <div>User: {user?.firstName} {user?.lastName}</div>
-  </div>
-
-  {loansLoading ? (
-    <div className="text-center py-8">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-      <p className="text-gray-600 dark:text-gray-400 mt-2">
-        {language === 'tr' ? 'Ödünç kitaplar yükleniyor...' : 'Loading borrowed books...'}
-      </p>
-    </div>
-  ) : userLoans.length === 0 ? (
-    <div className="text-center py-8">
-      <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-      <p className="text-gray-600 dark:text-gray-400 mb-4">
-        {texts.noLoans}
-      </p>
-      <p className="text-sm text-gray-500 dark:text-gray-400">
-        {language === 'tr' 
-          ? 'Kitaplar sayfasından kitap ödünç alabilirsiniz.' 
-          : 'You can borrow books from the books page.'
-        }
-      </p>
-    </div>
-  ) : (
-    <div className="space-y-4">
-      {userLoans.map((loan) => (
-        <div key={loan.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
-          <div className="flex items-center space-x-4 flex-1">
-            <img
-              src={loan.bookCover || '/images/default-book-cover.jpg'}
-              alt={loan.bookTitle}
-              className="w-12 h-16 object-cover rounded border"
-              onError={(e) => {
-                e.target.src = '/images/default-book-cover.jpg';
-              }}
-            />
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 dark:text-white">
-                {loan.bookTitle}
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 mt-2">
-                <div className="flex items-center">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  <span>{texts.borrowedDate}: {loan.borrowedDate}</span>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                    <BookOpen className="h-5 w-5 mr-2" />
+                    {texts.myLoans} 
+                    <span className="ml-2 bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded">
+                      {userLoans.length}
+                    </span>
+                  </h2>
+                  <button 
+                    onClick={handleManualRefresh}
+                    className="btn-outline text-sm flex items-center gap-1"
+                    disabled={loansLoading}
+                  >
+                    🔄 {texts.refresh}
+                  </button>
                 </div>
-                <div className="flex items-center">
-                  <Clock className="h-3 w-3 mr-1" />
-                  <span>{texts.dueDate}: {loan.dueDate}</span>
-                </div>
+
+                {loansLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-gray-600 dark:text-gray-400 mt-2">
+                      {language === 'tr' ? 'Ödünç kitaplar yükleniyor...' : 'Loading borrowed books...'}
+                    </p>
+                  </div>
+                ) : userLoans.length === 0 ? (
+                  <div className="text-center py-8">
+                    <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      {texts.noLoans}
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {language === 'tr' 
+                        ? 'Kitaplar sayfasından kitap ödünç alabilirsiniz.' 
+                        : 'You can borrow books from the books page.'
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {userLoans.map((loan) => (
+                      <div key={loan.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+                        <div className="flex items-center space-x-4 flex-1">
+                          <img
+                            src={loan.bookCover || '/images/default-book-cover.jpg'}
+                            alt={loan.bookTitle}
+                            className="w-12 h-16 object-cover rounded border"
+                            onError={(e) => {
+                              e.target.src = '/images/default-book-cover.jpg';
+                            }}
+                          />
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 dark:text-white">
+                              {loan.bookTitle}
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 mt-2">
+                              <div className="flex items-center">
+                                <Calendar className="h-3 w-3 mr-1" />
+                                <span>{texts.borrowedDate}: {formatDate(loan.borrowedDate)}</span>
+                              </div>
+                              <div className="flex items-center">
+                                <Clock className="h-3 w-3 mr-1" />
+                                <span>{texts.dueDate}: {formatDate(loan.dueDate)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <button className="btn-outline text-xs flex items-center gap-1 whitespace-nowrap">
+                          {texts.viewDetails}
+                          <ArrowRight className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
-          <button className="btn-outline text-xs flex items-center gap-1 whitespace-nowrap">
-            {texts.viewDetails}
-            <ArrowRight className="h-3 w-3" />
-          </button>
-        </div>
-      ))}
-    </div>
-  )}
-</div>
 
               {/* Account Info */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
