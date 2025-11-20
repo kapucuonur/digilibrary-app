@@ -147,20 +147,6 @@ const translations = {
     'categories.poetry': 'Poetry',
     'categories.art': 'Art',
     'categories.other': 'Other',
-
-      // Home Page - YENİ EKLENEN KEY'LER
-    'home.heroTitle': 'Welcome to DigiLibrary',
-    'home.heroSubtitle': 'Discover thousands of books, borrow them digitally, and manage your reading all in one place.',
-    'home.exploreBooks': 'Explore Books',
-    'home.joinNow': 'Join Now',
-    'home.whyChoose': 'Why Choose DigiLibrary?',
-    'home.whySubtitle': 'Modern library management at your fingertips',
-    'home.feature1Title': 'Vast Collection',
-    'home.feature1Desc': 'Access thousands of books across all genres and categories',
-    'home.feature2Title': 'Easy Management', 
-    'home.feature2Desc': 'Simple borrowing, returns, and renewal system',
-    'home.feature3Title': 'Rate & Review',
-    'home.feature3Desc': 'Share your thoughts and help others discover great books',
   }
 };
 

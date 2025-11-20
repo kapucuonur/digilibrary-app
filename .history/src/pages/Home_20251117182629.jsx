@@ -13,11 +13,11 @@ const Home = () => {
         <div className="container-custom">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-              {t('home.heroTitle')}{' '}
+              Welcome to{' '}
               <span className="text-primary-600">DigiLibrary</span>
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-              {t('home.heroSubtitle')}
+              Discover thousands of books, borrow them digitally, and manage your reading all in one place.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
@@ -25,13 +25,13 @@ const Home = () => {
                 className="btn-primary text-lg px-8 py-3"
               >
                 <Search className="h-5 w-5 mr-2" />
-                {t('home.exploreBooks')}
+                Explore Books
               </Link>
               <Link
                 to="/register"
                 className="btn-outline text-lg px-8 py-3"
               >
-                {t('home.joinNow')}
+                Join Now
               </Link>
             </div>
           </div>
@@ -43,10 +43,10 @@ const Home = () => {
         <div className="container-custom">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              {t('home.whyChoose')}
+              Why Choose DigiLibrary?
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300">
-              {t('home.whySubtitle')}
+              Modern library management at your fingertips
             </p>
           </div>
 
@@ -56,10 +56,10 @@ const Home = () => {
                 <BookOpen className="h-8 w-8 text-primary-600 dark:text-primary-400" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                {t('home.feature1Title')}
+                Vast Collection
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                {t('home.feature1Desc')}
+                Access thousands of books across all genres and categories
               </p>
             </div>
 
@@ -68,10 +68,10 @@ const Home = () => {
                 <Users className="h-8 w-8 text-primary-600 dark:text-primary-400" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                {t('home.feature2Title')}
+                Easy Management
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                {t('home.feature2Desc')}
+                Simple borrowing, returns, and renewal system
               </p>
             </div>
 
@@ -80,10 +80,10 @@ const Home = () => {
                 <Star className="h-8 w-8 text-primary-600 dark:text-primary-400" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                {t('home.feature3Title')}
+                Rate & Review
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                {t('home.feature3Desc')}
+                Share your thoughts and help others discover great books
               </p>
             </div>
           </div>

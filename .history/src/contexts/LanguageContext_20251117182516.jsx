@@ -67,20 +67,6 @@ const translations = {
     'categories.poetry': 'Şiir',
     'categories.art': 'Sanat',
     'categories.other': 'Diğer',
-  
-     // Home Page - YENİ EKLENEN KEY'LER
-    'home.heroTitle': 'DigiLibrary\'e Hoş Geldiniz',
-    'home.heroSubtitle': 'Binlerce kitabı keşfedin, dijital olarak ödünç alın ve okuma deneyiminizi tek bir yerde yönetin.',
-    'home.exploreBooks': 'Kitapları Keşfet',
-    'home.joinNow': 'Hemen Katıl',
-    'home.whyChoose': 'Neden DigiLibrary?',
-    'home.whySubtitle': 'Modern kütüphane yönetimi parmaklarınızın ucunda',
-    'home.feature1Title': 'Geniş Koleksiyon',
-    'home.feature1Desc': 'Tüm türlerden ve kategorilerden binlerce kitaba erişin',
-    'home.feature2Title': 'Kolay Yönetim',
-    'home.feature2Desc': 'Basit ödünç alma, iade ve uzatma sistemi',
-    'home.feature3Title': 'Değerlendir & Yorum Yap',
-    'home.feature3Desc': 'Düşüncelerinizi paylaşın ve başkalarının harika kitaplar keşfetmesine yardımcı olun',
   },
   en: {
     // Navigation
@@ -147,20 +133,6 @@ const translations = {
     'categories.poetry': 'Poetry',
     'categories.art': 'Art',
     'categories.other': 'Other',
-
-      // Home Page - YENİ EKLENEN KEY'LER
-    'home.heroTitle': 'Welcome to DigiLibrary',
-    'home.heroSubtitle': 'Discover thousands of books, borrow them digitally, and manage your reading all in one place.',
-    'home.exploreBooks': 'Explore Books',
-    'home.joinNow': 'Join Now',
-    'home.whyChoose': 'Why Choose DigiLibrary?',
-    'home.whySubtitle': 'Modern library management at your fingertips',
-    'home.feature1Title': 'Vast Collection',
-    'home.feature1Desc': 'Access thousands of books across all genres and categories',
-    'home.feature2Title': 'Easy Management', 
-    'home.feature2Desc': 'Simple borrowing, returns, and renewal system',
-    'home.feature3Title': 'Rate & Review',
-    'home.feature3Desc': 'Share your thoughts and help others discover great books',
   }
 };
 
