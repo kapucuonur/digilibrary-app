@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useLanguage } from '../contexts/LanguageContext'; // 👈 BU EKLENDİ
 import { loanService } from '../services/api';
 import { BookOpen, Clock, Star, AlertCircle, Book, Calendar } from 'lucide-react';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { t, language } = useLanguage(); // 👈 BU EKLENDİ
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,38 +17,22 @@ const Dashboard = () => {
       const response = await loanService.getMyLoans();
       setLoans(response.data.data || []);
     } catch (error) {
-      console.error('Failed to load borrowed books:', error);
+      console.error('Ödünç alınan kitaplar yüklenemedi:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleReturn = async (loanId) => {
-  try {
-    console.log('🔄 Returning book, loanId:', loanId);
-    
-    await loanService.return(loanId);
-    
-    // Başarı mesajı göster
-    const message = language === 'tr' 
-      ? 'Kitap başarıyla iade edildi!' 
-      : 'Book returned successfully!';
-    alert(message);
-    
-    loadLoans(); // Listeyi yenile
-    
-  } catch (error) {
-    console.error('Return error:', error);
-    
-    const errorMessage = language === 'tr'
-      ? 'İade işlemi başarısız: ' + (error.response?.data?.error || error.message)
-      : 'Return failed: ' + (error.response?.data?.error || error.message);
-    
-    alert(errorMessage);
-  }
-};
+    try {
+      await loanService.return(loanId);
+      loadLoans(); // Listeyi yenile
+    } catch (error) {
+      console.error('İade hatası:', error);
+    }
+  };
 
-  // Statistics
+  // İstatistikler
   const stats = {
     currentlyReading: loans.length,
     dueSoon: loans.filter(loan => {
@@ -62,57 +44,6 @@ const Dashboard = () => {
     }).length,
     favorites: 0,
     overdue: loans.filter(loan => new Date(loan.dueDate) < new Date()).length
-  };
-
-  // Dil'e göre metinler
-  const getTexts = () => {
-    if (language === 'tr') {
-      return {
-        welcome: 'Hoş Geldiniz',
-        subtitle: 'Okuma istatistikleriniz ve ödünç aldığınız kitaplar',
-        currentlyReading: 'Şu Anda Okunuyor',
-        dueSoon: 'Yakında Teslim',
-        favorites: 'Favoriler',
-        overdue: 'Gecikmiş',
-        borrowedBooks: 'Ödünç Aldığınız Kitaplar',
-        noBooks: 'Henüz ödünç aldığınız kitap yok',
-        noBooksDesc: 'Kitaplar sayfasından kitap ödünç alabilirsiniz',
-        returnBook: 'İade Et',
-        dueDate: 'Teslim',
-        overdueText: 'Gecikmiş',
-        dueSoonText: 'Yakında teslim',
-        loading: 'Yükleniyor...'
-      };
-    } else {
-      return {
-        welcome: 'Welcome',
-        subtitle: 'Your reading statistics and borrowed books',
-        currentlyReading: 'Currently Reading',
-        dueSoon: 'Due Soon',
-        favorites: 'Favorites',
-        overdue: 'Overdue',
-        borrowedBooks: 'Your Borrowed Books',
-        noBooks: 'You have no borrowed books yet',
-        noBooksDesc: 'You can borrow books from the books page',
-        returnBook: 'Return',
-        dueDate: 'Due',
-        overdueText: 'Overdue',
-        dueSoonText: 'Due Soon',
-        loading: 'Loading...'
-      };
-    }
-  };
-
-  const texts = getTexts();
-
-  // Tarih formatlama
-  const formatDate = (dateString) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US');
-    } catch (error) {
-      return dateString;
-    }
   };
 
   if (loading) {
@@ -132,10 +63,10 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="container mx-auto px-4">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          {texts.welcome}, {user?.firstName}!
+          Hoş Geldiniz, {user?.firstName}!
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-8">
-          {texts.subtitle}
+          Okuma istatistikleriniz ve ödünç aldığınız kitaplar
         </p>
         
         {/* Stats Cards */}
@@ -146,12 +77,8 @@ const Dashboard = () => {
                 <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  {texts.currentlyReading}
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.currentlyReading}
-                </p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Şu Anda Okunuyor</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.currentlyReading}</p>
               </div>
             </div>
           </div>
@@ -162,12 +89,8 @@ const Dashboard = () => {
                 <Clock className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  {texts.dueSoon}
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.dueSoon}
-                </p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Yakında Teslim</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.dueSoon}</p>
               </div>
             </div>
           </div>
@@ -178,12 +101,8 @@ const Dashboard = () => {
                 <Star className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  {texts.favorites}
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.favorites}
-                </p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Favoriler</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.favorites}</p>
               </div>
             </div>
           </div>
@@ -194,31 +113,25 @@ const Dashboard = () => {
                 <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  {texts.overdue}
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.overdue}
-                </p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Gecikmiş</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.overdue}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Borrowed Books */}
+        {/* Ödünç Alınan Kitaplar */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            {texts.borrowedBooks}
+            Ödünç Aldığınız Kitaplar
           </h2>
           
           {loans.length === 0 ? (
             <div className="text-center py-8">
               <Book className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">
-                {texts.noBooks}
-              </p>
+              <p className="text-gray-600 dark:text-gray-400">Henüz ödünç aldığınız kitap yok</p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                {texts.noBooksDesc}
+                Kitaplar sayfasından kitap ödünç alabilirsiniz
               </p>
             </div>
           ) : (
@@ -247,18 +160,16 @@ const Dashboard = () => {
                         <div className="flex items-center space-x-4 mt-1">
                           <div className="flex items-center space-x-1 text-sm text-gray-500">
                             <Calendar className="h-4 w-4" />
-                            <span>
-                              {texts.dueDate}: {formatDate(loan.dueDate)}
-                            </span>
+                            <span>Teslim: {dueDate.toLocaleDateString('tr-TR')}</span>
                           </div>
                           {isOverdue && (
                             <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                              {texts.overdueText}
+                              Gecikmiş
                             </span>
                           )}
                           {!isOverdue && daysUntilDue <= 3 && (
                             <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                              {texts.dueSoonText}
+                              Yakında teslim
                             </span>
                           )}
                         </div>
@@ -269,7 +180,7 @@ const Dashboard = () => {
                       onClick={() => handleReturn(loan.id)}
                       className="btn-outline text-sm"
                     >
-                      {texts.returnBook}
+                      İade Et
                     </button>
                   </div>
                 );

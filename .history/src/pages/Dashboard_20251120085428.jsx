@@ -26,29 +26,13 @@ const Dashboard = () => {
   };
 
   const handleReturn = async (loanId) => {
-  try {
-    console.log('🔄 Returning book, loanId:', loanId);
-    
-    await loanService.return(loanId);
-    
-    // Başarı mesajı göster
-    const message = language === 'tr' 
-      ? 'Kitap başarıyla iade edildi!' 
-      : 'Book returned successfully!';
-    alert(message);
-    
-    loadLoans(); // Listeyi yenile
-    
-  } catch (error) {
-    console.error('Return error:', error);
-    
-    const errorMessage = language === 'tr'
-      ? 'İade işlemi başarısız: ' + (error.response?.data?.error || error.message)
-      : 'Return failed: ' + (error.response?.data?.error || error.message);
-    
-    alert(errorMessage);
-  }
-};
+    try {
+      await loanService.return(loanId);
+      loadLoans(); // Refresh list
+    } catch (error) {
+      console.error('Return error:', error);
+    }
+  };
 
   // Statistics
   const stats = {

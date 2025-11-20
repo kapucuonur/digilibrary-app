@@ -309,17 +309,3 @@ backend/*.log
 # Uploads directory (eğer dosya yükleme varsa)
 uploads/
 public/uploads/
-# Backend specific
-node_modules/
-dist/
-build/
-.env
-.env.*
-*.log
-logs/
-.DS_Store
-*.pid
-*.seed
-*.pid.lock
-coverage/
-.nyc_output
