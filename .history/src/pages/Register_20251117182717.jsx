@@ -6,16 +6,14 @@ import { useLanguage } from '../contexts/LanguageContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const Register = () => {
-  const { register: registerUser, loading } = useAuth(); // 👈 registerUser buradan geliyor
+  const { register: registerUser, loading } = useAuth();
   const { t } = useLanguage();
   const { register, handleSubmit, formState: { errors }, watch } = useForm();
 
   const password = watch('password');
 
   const onSubmit = async (data) => {
-    console.log('📝 Form submitted:', data);
-    const result = await registerUser(data); // 👈 Bu satır hata veriyor
-    console.log('✅ Register result:', result);
+    await registerUser(data);
   };
 
   return (
