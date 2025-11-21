@@ -130,6 +130,10 @@ export const handler = async (event, context) => {
       borrowDate: new Date(),
       dueDate: dueDate,
       status: 'ACTIVE',
+       fineAmount: 0,
+      paidAmount: 0,
+      fineDays: 0,
+      paymentHistory: [],
       createdAt: new Date(),
       updatedAt: new Date()
     };
