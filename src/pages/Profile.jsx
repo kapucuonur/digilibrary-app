@@ -76,11 +76,30 @@ const Profile = () => {
 
   // Ceza hesapla
   const calculateFine = (loan) => {
+  try {
+    // ⬇️ Tarih kontrolü ekle
+    if (!loan.dueDate) {
+      console.warn('⚠️ dueDate yok:', loan);
+      return { fineDays: 0, fineAmount: 0 };
+    }
+    
     const today = new Date();
     const dueDate = new Date(loan.dueDate);
+    
+    // ⬇️ Geçerli tarih kontrolü
+    if (isNaN(dueDate.getTime())) {
+      console.warn('⚠️ Geçersiz dueDate:', loan.dueDate);
+      return { fineDays: 0, fineAmount: 0 };
+    }
+    
     const fineDays = Math.max(0, Math.ceil((today - dueDate) / (1000 * 60 * 60 * 24)));
-    return { fineDays, fineAmount: fineDays * 1 }; // Günlük 1 TL
-  };
+    return { fineDays, fineAmount: fineDays * 1 };
+    
+  } catch (error) {
+    console.error('❌ calculateFine hatası:', error, loan);
+    return { fineDays: 0, fineAmount: 0 };
+  }
+};
 
   const handleManualRefresh = () => {
     console.log('🔄 MANUAL REFRESH TRIGGERED');
@@ -460,19 +479,41 @@ const Profile = () => {
                                       </p>
                                     </div>
                                     <button 
-                                      onClick={() => {
-                                        setSelectedLoan({ 
-                                          ...loan, 
-                                          fineDays, 
-                                          fineAmount,
-                                          id: loan.id
-                                        });
-                                        setShowPayment(true);
-                                      }}
-                                      className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
-                                    >
-                                      {texts.payFine}
-                                    </button>
+  onClick={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('🎯 Buton tıklandı, loan:', loan);
+    
+    // ⬇️ Güvenli loan kontrolü
+    if (!loan) {
+      console.error('❌ Loan undefined!');
+      return;
+    }
+    
+    const { fineDays, fineAmount } = calculateFine(loan);
+    
+    // ⬇️ ID kontrolü
+    const loanId = loan._id?.toString() || loan.id;
+    if (!loanId) {
+      console.error('❌ Loan ID yok:', loan);
+      return;
+    }
+    
+    console.log('💰 Fine calculated:', { fineDays, fineAmount, loanId });
+    
+    setSelectedLoan({ 
+      ...loan, 
+      fineDays, 
+      fineAmount,
+      id: loanId
+    });
+    setShowPayment(true);
+  }}
+  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer"
+>
+  💰 {texts.payFine}
+</button>
                                   </div>
                                 </div>
                               )}
