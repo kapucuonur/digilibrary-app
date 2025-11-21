@@ -41,45 +41,57 @@ const Profile = () => {
 
   // ÖDÜNÇ KİTAPLARI YÜKLE
   useEffect(() => {
-    console.log('🔥 PROFILE USEFFECT FIRED! Refresh counter:', refreshCounter);
-    
-    const loadUserLoans = async () => {
-      try {
-        console.log('🔄 Starting to load user loans...');
-        setLoansLoading(true);
+  console.log('🔥 PROFILE USEFFECT FIRED! Refresh counter:', refreshCounter);
+  
+  const loadUserLoans = async () => {
+    try {
+      console.log('🔄 Starting to load user loans...');
+      setLoansLoading(true);
+      
+      const response = await loanService.getMyLoans();
+      console.log('✅ Loans API Response:', response);
+      
+      // ⬇️ Daha güvenli veri kontrolü
+      if (response?.data?.success && Array.isArray(response.data.data)) {
+        console.log('🎉 Loans found:', response.data.data.length, 'items');
         
-        const response = await loanService.getMyLoans();
-        console.log('✅ Loans API Response:', response);
+        // ⬇️ Verileri temizle ve kontrol et
+        const cleanedLoans = response.data.data.map(loan => ({
+          id: loan.id || loan._id || Math.random().toString(),
+          bookTitle: loan.bookTitle || 'Bilinmeyen Kitap',
+          bookCover: loan.bookCover,
+          borrowDate: loan.borrowDate,
+          dueDate: loan.dueDate,
+          // diğer gerekli alanlar...
+        }));
         
-        if (response.data && response.data.success) {
-          console.log('🎉 Loans found:', response.data.data.length, 'items');
-          setUserLoans(response.data.data);
-        } else {
-          console.log('⚠️ No loans data in response, using empty array');
-          setUserLoans([]);
-        }
-      } catch (error) {
-        console.error('❌ Error loading loans:', error);
+        setUserLoans(cleanedLoans);
+      } else {
+        console.log('⚠️ No valid loans data, using empty array');
         setUserLoans([]);
-        toast.error(language === 'tr' 
-          ? 'Kitaplar yüklenirken geçici bir sorun oluştu' 
-          : 'Temporary issue while loading books'
-        );
-      } finally {
-        setLoansLoading(false);
-        console.log('🏁 Loans loading finished');
       }
-    };
+    } catch (error) {
+      console.error('❌ Error loading loans:', error);
+      setUserLoans([]);
+      toast.error(language === 'tr' 
+        ? 'Kitaplar yüklenirken geçici bir sorun oluştu' 
+        : 'Temporary issue while loading books'
+      );
+    } finally {
+      setLoansLoading(false);
+      console.log('🏁 Loans loading finished');
+    }
+  };
 
-    loadUserLoans();
-  }, [refreshCounter, language]);
+  loadUserLoans();
+}, [refreshCounter, language]);
 
   // Ceza hesapla
-  const calculateFine = (loan) => {
+ const calculateFine = (loan) => {
   try {
-    // ⬇️ Tarih kontrolü ekle
-    if (!loan.dueDate) {
-      console.warn('⚠️ dueDate yok:', loan);
+    // ⬇️ Daha güvenli tarih kontrolü
+    if (!loan || !loan.dueDate) {
+      console.warn('⚠️ dueDate yok veya loan undefined:', loan);
       return { fineDays: 0, fineAmount: 0 };
     }
     
@@ -453,7 +465,7 @@ const Profile = () => {
         />
         <div className="flex-1">
           <h3 className="font-semibold text-gray-900 dark:text-white">
-            {loan.bookTitle}
+            {loan.bookTitle || 'Bilinmeyen Kitap'}
           </h3>
           <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
             <div>Alınma: {formatDate(loan.borrowDate)}</div>
@@ -480,10 +492,11 @@ const Profile = () => {
           {fineDays > 0 && (
             <button 
               onClick={() => {
-                console.log('🎯 YENİ BUTON TIKLANDI!', loan);
-                alert('Buton çalışıyor!');
+                console.log('🎯 ÖDEME BUTONU TIKLANDI!', loan);
                 
-                const loanId = loan._id?.toString() || loan.id;
+                // ⬇️ Daha güvenli ID kontrolü
+                const loanId = loan?._id?.toString() || loan?.id || 'unknown';
+                
                 setSelectedLoan({ 
                   ...loan, 
                   fineDays, 
