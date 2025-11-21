@@ -5,8 +5,37 @@ import { Elements, CardElement, useStripe, useElements } from '@stripe/react-str
 import { X, CreditCard, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
-// Stripe'ı basit şekilde yükle
-const stripePromise = loadStripe(process.env.STRIPE_PUBLISHABLE_KEY);
+
+// PaymentModal.jsx - en üste ekle
+console.log('🔑 Stripe Key Check:', {
+  key: process.env.STRIPE_PUBLISHABLE_KEY,
+  hasKey: !!process.env.STRIPE_PUBLISHABLE_KEY,
+  keyStartsWithPk: process.env.STRIPE_PUBLISHABLE_KEY?.startsWith('pk_'),
+  nodeEnv: process.env.NODE_ENV
+});
+
+// Stripe'ı güvenli yükle
+const getStripeKey = () => {
+  const key = process.env.STRIPE_PUBLISHABLE_KEY;
+  console.log('🔑 Raw Stripe Key:', key);
+  
+  if (!key) {
+    console.error('❌ STRIPE_PUBLISHABLE_KEY missing!');
+    return null;
+  }
+  
+  if (!key.startsWith('pk_')) {
+    console.error('❌ Invalid Stripe key format');
+    return null;
+  }
+  
+  return key;
+};
+
+const stripeKey = getStripeKey();
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
+
+
 
 // Basit CheckoutForm - CardElement kullan
 const CheckoutForm = ({ loan, onSuccess, onClose }) => {
@@ -205,6 +234,9 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
     </form>
   );
 };
+
+
+
 
 // Ana PaymentModal Component'ı
 const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
