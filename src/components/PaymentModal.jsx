@@ -1,41 +1,40 @@
-// src/components/PaymentModal.jsx - YENİ VE BASİT VERSİYON
+// src/components/PaymentModal.jsx
 import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { X, CreditCard, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
-
-// PaymentModal.jsx - en üste ekle
-console.log('🔑 Stripe Key Check:', {
-  key: process.env.STRIPE_PUBLISHABLE_KEY,
-  hasKey: !!process.env.STRIPE_PUBLISHABLE_KEY,
-  keyStartsWithPk: process.env.STRIPE_PUBLISHABLE_KEY?.startsWith('pk_'),
+// Stripe key kontrolü - GÜVENLİ
+console.log('🔑 Stripe Environment Check:', {
+  hasReactAppKey: !!process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY,
+  hasNormalKey: !!process.env.STRIPE_PUBLISHABLE_KEY,
   nodeEnv: process.env.NODE_ENV
 });
 
 // Stripe'ı güvenli yükle
 const getStripeKey = () => {
-  const key = process.env.STRIPE_PUBLISHABLE_KEY;
-  console.log('🔑 Raw Stripe Key:', key);
-  
-  if (!key) {
-    console.error('❌ STRIPE_PUBLISHABLE_KEY missing!');
-    return null;
+  // Önce REACT_APP_ prefix'liyi dene
+  const reactAppKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
+  if (reactAppKey && reactAppKey.startsWith('pk_')) {
+    console.log('✅ Using REACT_APP_STRIPE_PUBLISHABLE_KEY');
+    return reactAppKey;
   }
   
-  if (!key.startsWith('pk_')) {
-    console.error('❌ Invalid Stripe key format');
-    return null;
+  // Sonra normali dene
+  const normalKey = process.env.STRIPE_PUBLISHABLE_KEY;
+  if (normalKey && normalKey.startsWith('pk_')) {
+    console.log('✅ Using STRIPE_PUBLISHABLE_KEY');
+    return normalKey;
   }
   
-  return key;
+  // Hiçbiri yoksa hata ver
+  console.error('❌ No valid Stripe key found in environment variables');
+  throw new Error('Stripe key not configured');
 };
 
-const stripeKey = getStripeKey();
-const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
-
-
+// Stripe'ı yükle
+const stripePromise = loadStripe(getStripeKey());
 
 // Basit CheckoutForm - CardElement kullan
 const CheckoutForm = ({ loan, onSuccess, onClose }) => {
@@ -63,7 +62,8 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
       paymentError: 'Ödeme sırasında bir hata oluştu',
       testCard: 'Test kartı: 4242 4242 4242 4242 - 04/24 - 242 - 42424',
       days: 'gün',
-      securePayment: 'Güvenli ödeme'
+      securePayment: 'Güvenli ödeme',
+      systemNotReady: 'Ödeme sistemi hazır değil'
     },
     en: {
       title: 'Late Fine Payment',
@@ -79,7 +79,8 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
       paymentError: 'An error occurred during payment',
       testCard: 'Test card: 4242 4242 4242 4242 - 04/24 - 242 - 42424',
       days: 'days',
-      securePayment: 'Secure payment'
+      securePayment: 'Secure payment',
+      systemNotReady: 'Payment system not ready'
     }
   };
 
@@ -87,9 +88,11 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('💰 Payment form submitted');
     
     if (!stripe || !elements) {
-      setError('Ödeme sistemi hazır değil');
+      console.error('❌ Stripe or Elements not ready');
+      setError(t.systemNotReady);
       return;
     }
 
@@ -98,8 +101,9 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
 
     try {
       const cardElement = elements.getElement(CardElement);
+      console.log('🔐 Confirming card payment...');
       
-      const { error: submitError, paymentIntent } = await stripe.confirmCardPayment(loan.clientSecret, {
+      const { error: submitError } = await stripe.confirmCardPayment(loan.clientSecret, {
         payment_method: {
           card: cardElement,
           billing_details: {
@@ -109,14 +113,17 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
       });
 
       if (submitError) {
+        console.error('❌ Stripe payment error:', submitError);
         setError(submitError.message || t.paymentError);
       } else {
+        console.log('✅ Payment successful!');
         setSuccess(true);
         setTimeout(() => {
           onSuccess();
         }, 2000);
       }
     } catch (err) {
+      console.error('❌ General payment error:', err);
       setError(t.paymentError);
     } finally {
       setLoading(false);
@@ -127,8 +134,10 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
     return (
       <div className="text-center py-8">
         <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.paymentSuccess}</h3>
-        <p className="text-gray-600">Yönlendiriliyorsunuz...</p>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          {t.paymentSuccess}
+        </h3>
+        <p className="text-gray-600 dark:text-gray-400">Yönlendiriliyorsunuz...</p>
       </div>
     );
   }
@@ -136,24 +145,24 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Ödeme Detayları */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <h3 className="font-semibold text-yellow-800 text-lg mb-2">
+      <div className="bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+        <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 text-lg mb-2">
           {t.fineDetails}
         </h3>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-yellow-700">{t.book}:</span>
-            <span className="text-yellow-900 font-medium">{loan.bookTitle}</span>
+            <span className="text-yellow-700 dark:text-yellow-300">{t.book}:</span>
+            <span className="text-yellow-900 dark:text-yellow-100 font-medium">{loan.bookTitle}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-yellow-700">{t.delay}:</span>
-            <span className="text-yellow-900 font-medium">
+            <span className="text-yellow-700 dark:text-yellow-300">{t.delay}:</span>
+            <span className="text-yellow-900 dark:text-yellow-100 font-medium">
               {loan.fineDays} {t.days}
             </span>
           </div>
-          <div className="flex justify-between border-t border-yellow-300 pt-2 mt-2">
-            <span className="text-yellow-800 font-semibold">{t.total}:</span>
-            <span className="text-yellow-900 font-bold text-lg">
+          <div className="flex justify-between border-t border-yellow-300 dark:border-yellow-700 pt-2 mt-2">
+            <span className="text-yellow-800 dark:text-yellow-200 font-semibold">{t.total}:</span>
+            <span className="text-yellow-900 dark:text-yellow-100 font-bold text-lg">
               {loan.fineAmount} {language === 'tr' ? '₺' : 'TL'}
             </span>
           </div>
@@ -162,33 +171,40 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
 
       {/* Kart Bilgileri - BASİT CardElement */}
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           <CreditCard className="h-4 w-4 inline mr-1" />
           {t.cardInfo}
         </label>
-        <div className="border border-gray-300 rounded-lg p-3 bg-white">
-          <CardElement 
-            options={{
-              style: {
-                base: {
-                  fontSize: '16px',
-                  color: '#424770',
-                  '::placeholder': {
-                    color: '#aab7c4',
+        <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800">
+          {stripe ? (
+            <CardElement 
+              options={{
+                style: {
+                  base: {
+                    fontSize: '16px',
+                    color: '#424770',
+                    '::placeholder': {
+                      color: '#aab7c4',
+                    },
                   },
                 },
-              },
-            }}
-          />
+              }}
+            />
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              <Loader className="h-6 w-6 animate-spin mx-auto mb-2" />
+              <div>Stripe yükleniyor...</div>
+            </div>
+          )}
         </div>
-        <p className="text-xs text-gray-500 text-center">
+        <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
           {t.testCard}
         </p>
       </div>
 
       {/* Hata Mesajı */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg">
           <div className="flex items-center">
             <AlertCircle className="h-4 w-4 mr-2" />
             <span>{error}</span>
@@ -201,7 +217,7 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+          className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium disabled:opacity-50"
           disabled={loading}
         >
           {t.cancel}
@@ -209,7 +225,7 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
         <button
           type="submit"
           disabled={!stripe || loading}
-          className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+          className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
@@ -227,16 +243,13 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
 
       {/* Güvenlik Bilgisi */}
       <div className="text-center">
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           🔒 {t.securePayment}
         </p>
       </div>
     </form>
   );
 };
-
-
-
 
 // Ana PaymentModal Component'ı
 const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
@@ -249,8 +262,10 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
 
   useEffect(() => {
     if (isOpen && loan) {
+      console.log('🟢 createPaymentIntent called');
       createPaymentIntent();
     } else {
+      console.log('🔴 Modal closed or no loan');
       setClientSecret('');
       setError('');
       setLoading(false);
@@ -280,6 +295,8 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
       console.log('📨 API Response status:', response.status);
       
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ API Error:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
@@ -288,6 +305,7 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
       
       if (data.clientSecret) {
         setClientSecret(data.clientSecret);
+        console.log('✅ Client secret set successfully');
       } else {
         throw new Error('Client secret alınamadı');
       }
@@ -312,14 +330,16 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
       loading: 'Ödeme hazırlanıyor...',
       errorTitle: 'Hata Oluştu',
       tryAgain: 'Tekrar Dene',
-      close: 'Kapat'
+      close: 'Kapat',
+      paymentError: 'Ödeme bilgileri yüklenemedi'
     },
     en: {
       title: 'Late Fine Payment',
       loading: 'Payment preparing...',
       errorTitle: 'Error Occurred',
       tryAgain: 'Try Again',
-      close: 'Close'
+      close: 'Close',
+      paymentError: 'Payment information could not be loaded'
     }
   };
 
@@ -327,14 +347,15 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl max-w-md w-full shadow-2xl">
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">
+      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full shadow-2xl">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             {t.title}
           </h2>
           <button 
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            disabled={loading}
           >
             <X className="h-5 w-5" />
           </button>
@@ -344,18 +365,18 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
           {loading ? (
             <div className="text-center py-8">
               <Loader className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-              <p className="text-gray-600">{t.loading}</p>
+              <p className="text-gray-600 dark:text-gray-400">{t.loading}</p>
             </div>
           ) : error ? (
             <div className="text-center py-6">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 {t.errorTitle}
               </h3>
-              <p className="text-gray-600 mb-4">{error}</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
               <button
                 onClick={createPaymentIntent}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 {t.tryAgain}
               </button>
@@ -375,7 +396,8 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
             </Elements>
           ) : (
             <div className="text-center py-6">
-              <p className="text-gray-600">Ödeme bilgileri yüklenemedi</p>
+              <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">{t.paymentError}</p>
             </div>
           )}
         </div>
