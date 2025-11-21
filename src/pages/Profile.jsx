@@ -430,9 +430,7 @@ const Profile = () => {
                               src={loan.bookCover || '/images/default-book-cover.jpg'}
                               alt={loan.bookTitle}
                               className="w-12 h-16 object-cover rounded border"
-                              onError={(e) => {
-                                e.target.src = '/images/default-book-cover.jpg';
-                              }}
+                              
                             />
                             <div className="flex-1">
                               <h3 className="font-semibold text-gray-900 dark:text-white">

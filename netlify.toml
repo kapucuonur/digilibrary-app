@@ -10,7 +10,7 @@
   node_bundler = "esbuild"
 
 
-# ✅ BUNU EKLE - DOĞRU
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
