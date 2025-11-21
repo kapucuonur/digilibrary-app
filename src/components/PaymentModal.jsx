@@ -12,7 +12,7 @@ console.log('🔑 Stripe Environment Check:', {
   nodeEnv: process.env.NODE_ENV
 });
 
-// Stripe'ı güvenli yükle
+// Stripe'ı güvenli yükle - FALLBACK'li
 const getStripeKey = () => {
   // Önce REACT_APP_ prefix'liyi dene
   const reactAppKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
@@ -28,13 +28,13 @@ const getStripeKey = () => {
     return normalKey;
   }
   
-  // Hiçbiri yoksa hata ver
-  console.error('❌ No valid Stripe key found in environment variables');
-  throw new Error('Stripe key not configured');
+  // Hiçbiri yoksa UYARI ver ama SAYFAYI AÇ
+  console.warn('⚠️ No Stripe key found - Payment will be disabled');
+  return null;
 };
 
-// Stripe'ı yükle
-const stripePromise = loadStripe(getStripeKey());
+const stripeKey = getStripeKey();
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 // Basit CheckoutForm - CardElement kullan
 const CheckoutForm = ({ loan, onSuccess, onClose }) => {
@@ -46,6 +46,30 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
   const { language } = useLanguage();
 
   console.log('🔔 Simple CheckoutForm - Stripe:', !!stripe, 'Elements:', !!elements);
+
+  // ⬇️ STRIPE YOKSA MESAJ GÖSTER
+  if (!stripePromise) {
+    return (
+      <div className="text-center py-8">
+        <AlertCircle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          {language === 'tr' ? 'Ödeme Sistemi Hazır Değil' : 'Payment System Not Ready'}
+        </h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-4">
+          {language === 'tr' 
+            ? 'Stripe entegrasyonu yapılandırılmamış.' 
+            : 'Stripe integration not configured.'
+          }
+        </p>
+        <button
+          onClick={onClose}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          {language === 'tr' ? 'Kapat' : 'Close'}
+        </button>
+      </div>
+    );
+  }
 
   const texts = {
     tr: {
@@ -63,7 +87,8 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
       testCard: 'Test kartı: 4242 4242 4242 4242 - 04/24 - 242 - 42424',
       days: 'gün',
       securePayment: 'Güvenli ödeme',
-      systemNotReady: 'Ödeme sistemi hazır değil'
+      systemNotReady: 'Ödeme sistemi hazır değil',
+      stripeLoading: 'Stripe yükleniyor...'
     },
     en: {
       title: 'Late Fine Payment',
@@ -80,7 +105,8 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
       testCard: 'Test card: 4242 4242 4242 4242 - 04/24 - 242 - 42424',
       days: 'days',
       securePayment: 'Secure payment',
-      systemNotReady: 'Payment system not ready'
+      systemNotReady: 'Payment system not ready',
+      stripeLoading: 'Stripe loading...'
     }
   };
 
@@ -137,7 +163,9 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
           {t.paymentSuccess}
         </h3>
-        <p className="text-gray-600 dark:text-gray-400">Yönlendiriliyorsunuz...</p>
+        <p className="text-gray-600 dark:text-gray-400">
+          {language === 'tr' ? 'Yönlendiriliyorsunuz...' : 'Redirecting...'}
+        </p>
       </div>
     );
   }
@@ -175,8 +203,13 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
           <CreditCard className="h-4 w-4 inline mr-1" />
           {t.cardInfo}
         </label>
-        <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800">
-          {stripe ? (
+        <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800 min-h-[120px] flex items-center justify-center">
+          {!stripe ? (
+            <div className="text-center py-4 text-gray-500">
+              <Loader className="h-6 w-6 animate-spin mx-auto mb-2" />
+              <div>{t.stripeLoading}</div>
+            </div>
+          ) : (
             <CardElement 
               options={{
                 style: {
@@ -190,11 +223,6 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
                 },
               }}
             />
-          ) : (
-            <div className="text-center py-4 text-gray-500">
-              <Loader className="h-6 w-6 animate-spin mx-auto mb-2" />
-              <div>Stripe yükleniyor...</div>
-            </div>
           )}
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
@@ -331,7 +359,8 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
       errorTitle: 'Hata Oluştu',
       tryAgain: 'Tekrar Dene',
       close: 'Kapat',
-      paymentError: 'Ödeme bilgileri yüklenemedi'
+      paymentError: 'Ödeme bilgileri yüklenemedi',
+      paymentDisabled: 'Ödeme Sistemi Hazır Değil'
     },
     en: {
       title: 'Late Fine Payment',
@@ -339,7 +368,8 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
       errorTitle: 'Error Occurred',
       tryAgain: 'Try Again',
       close: 'Close',
-      paymentError: 'Payment information could not be loaded'
+      paymentError: 'Payment information could not be loaded',
+      paymentDisabled: 'Payment System Not Ready'
     }
   };
 
@@ -382,18 +412,39 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
               </button>
             </div>
           ) : clientSecret ? (
-            <Elements 
-              stripe={stripePromise} 
-              options={{ 
-                clientSecret,
-              }}
-            >
-              <CheckoutForm 
-                loan={{ ...loan, clientSecret }}
-                onSuccess={onSuccess}
-                onClose={onClose}
-              />
-            </Elements>
+            stripePromise ? (
+              <Elements 
+                stripe={stripePromise} 
+                options={{ 
+                  clientSecret,
+                }}
+              >
+                <CheckoutForm 
+                  loan={{ ...loan, clientSecret }}
+                  onSuccess={onSuccess}
+                  onClose={onClose}
+                />
+              </Elements>
+            ) : (
+              <div className="text-center py-6">
+                <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  {t.paymentDisabled}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  {language === 'tr' 
+                    ? 'Stripe entegrasyonu yapılandırılmamış.' 
+                    : 'Stripe integration not configured.'
+                  }
+                </p>
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  {t.close}
+                </button>
+              </div>
+            )
           ) : (
             <div className="text-center py-6">
               <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
