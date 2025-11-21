@@ -1,14 +1,16 @@
-[dev]
-  framework = "vite"
-  targetPort = 3000  # Vite'in çalıştığı port
-  port = 3001        # Netlify Dev'in çalıştığı port
-
 [build]
   command = "npm run build"
   publish = "dist"
-  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NODE_ENV = "production"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
 
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/.netlify/functions/*"
+  to = "/.netlify/functions/:splat"
   status = 200
