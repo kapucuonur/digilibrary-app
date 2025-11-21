@@ -43,38 +43,21 @@ const Profile = () => {
   
   
   useEffect(() => {
+  console.log('🔥 PROFILE USEFFECT FIRED!');
+  
   const loadUserLoans = async () => {
     try {
-      console.log('🔄 Starting to load user loans...');
+      console.log('🔄 Loading user loans...');
       setLoansLoading(true);
       
       const response = await loanService.getMyLoans();
       console.log('✅ Loans API Response:', response);
       
       if (response?.data?.success && Array.isArray(response.data.data)) {
-        console.log('🎉 Loans found:', response.data.data.length, 'items');
-        
-        // ⬇️ HER LOAN'I DEBUG ET
-        const cleanedLoans = response.data.data.map((loan, index) => {
-          console.log(`📚 Raw Loan ${index}:`, loan);
-          
-          // Tüm alanları kontrol et
-          const safeLoan = {
-            id: String(loan.id || loan._id || `temp-${index}`),
-            bookTitle: String(loan.bookTitle || 'Bilinmeyen Kitap'),
-            bookCover: String(loan.bookCover || 'https://via.placeholder.com/128x192/4F46E5/FFFFFF?text=Kitap'),
-            borrowDate: String(loan.borrowDate || new Date().toISOString()),
-            dueDate: String(loan.dueDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()),
-            status: String(loan.status || 'ACTIVE')
-          };
-          
-          console.log(`✅ Safe Loan ${index}:`, safeLoan);
-          return safeLoan;
-        });
-        
-        setUserLoans(cleanedLoans);
+        console.log('🎉 Loans loaded:', response.data.data.length);
+        setUserLoans(response.data.data);
       } else {
-        console.log('⚠️ No valid loans data');
+        console.log('⚠️ No loans data');
         setUserLoans([]);
       }
     } catch (error) {
@@ -86,7 +69,7 @@ const Profile = () => {
   };
 
   loadUserLoans();
-}, [refreshCounter, language]);
+}, [refreshCounter]);
 
   // Ceza hesapla
  const calculateFine = (loan) => {
@@ -486,90 +469,76 @@ const formatDate = (dateString) => {
                 ) : (
                   <div className="space-y-4">
                     // Profile.js'de butonu SİL ve YENİSİNİ YAZ:
-{userLoans.map((loan, index) => {
-  try {
-    console.log(`🔄 Processing loan ${index}:`, loan);
-    
-    // ⬇️ Loan'ı güvenli hale getir
-    const safeLoan = {
-      id: String(loan?.id || loan?._id || `loan-${index}`),
-      bookTitle: String(loan?.bookTitle || 'Bilinmeyen Kitap'),
-      bookCover: String(loan?.bookCover || ''),
-      borrowDate: String(loan?.borrowDate || ''),
-      dueDate: String(loan?.dueDate || '')
-    };
-    
-    const { fineDays, fineAmount } = calculateFine(safeLoan);
-    
-    console.log(`✅ Loan ${index} processed:`, { fineDays, fineAmount });
-    
-    return (
-      <div key={safeLoan.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
-        <div className="flex items-center space-x-4 flex-1">
-          <img
-            src={safeLoan.bookCover || 'https://via.placeholder.com/128x192/4F46E5/FFFFFF?text=Kitap'}
-            alt={safeLoan.bookTitle}
-            className="w-12 h-16 object-cover rounded border"
-            onError={(e) => {
-              e.target.src = 'https://via.placeholder.com/128x192/4F46E5/FFFFFF?text=Kitap';
-            }}
-          />
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-900 dark:text-white">
-              {safeLoan.bookTitle}
-            </h3>
-            <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-              <div>Alınma: {formatDate(safeLoan.borrowDate)}</div>
-              <div>Son Tarih: {formatDate(safeLoan.dueDate)}</div>
-            </div>
+{userLoans.map((loan) => {
+  const { fineDays, fineAmount } = calculateFine(loan);
+  
+  return (
+    <div key={loan.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+      
+      {/* BURASI - IMAGE TAG'İ */}
+      <div className="flex items-center space-x-4 flex-1">
+        <img
+          src={loan.bookCover}
+          alt={loan.bookTitle}
+          className="w-12 h-16 object-cover rounded border"
+          onError={(e) => {
+            // FALLBACK EKLENECEK
+            e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDEyOCAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEyOCIgaGVpZ2h0PSIxOTIiIGZpbGw9IiM0RjQ2RTUiLz48dGV4dCB4PSI2NCIgeT0iOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwiPktpdGFwPC90ZXh0Pjwvc3ZnPg==';
+          }}
+        />
+        <div className="flex-1">
+          <h3 className="font-semibold text-gray-900 dark:text-white">
+            {loan.bookTitle}
+          </h3>
+          <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+            <div>Alınma: {formatDate(loan.borrowDate)}</div>
+            <div>Son Tarih: {formatDate(loan.dueDate)}</div>
           </div>
         </div>
-        
-        <div className="flex flex-col items-end gap-2">
-          {fineDays > 0 && (
-            <div className="text-right">
-              <div className="text-yellow-600 font-semibold">
-                ⏰ {fineDays} gün gecikme
-              </div>
-              <div className="text-yellow-700 font-bold">
-                💰 {fineAmount} TL
-              </div>
+      </div>
+      
+      {/* Butonlar */}
+      <div className="flex flex-col items-end gap-2">
+        {fineDays > 0 && (
+          <div className="text-right">
+            <div className="text-yellow-600 font-semibold">
+              ⏰ {fineDays} gün gecikme
             </div>
+            <div className="text-yellow-700 font-bold">
+              💰 {fineAmount} TL
+            </div>
+          </div>
+        )}
+        
+        <div className="flex gap-2">
+          {fineDays > 0 && (
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🎯 ÖDEME BUTONU TIKLANDI!', loan);
+                
+                // Modal'ı aç
+                setSelectedLoan({ 
+                  ...loan, 
+                  fineDays, 
+                  fineAmount 
+                });
+                setShowPayment(true);
+              }}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              ✅ Öde
+            </button>
           )}
           
-          <div className="flex gap-2">
-            {fineDays > 0 && (
-              <button 
-                onClick={() => {
-                  console.log('🎯 ÖDEME BUTONU TIKLANDI!', safeLoan);
-                  setSelectedLoan({ 
-                    ...safeLoan, 
-                    fineDays, 
-                    fineAmount 
-                  });
-                  setShowPayment(true);
-                }}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-              >
-                ✅ Öde
-              </button>
-            )}
-            
-            <button className="btn-outline text-xs px-3 py-2">
-              Detay
-            </button>
-          </div>
+          <button className="border border-gray-300 text-gray-700 px-3 py-2 rounded text-xs">
+            Detay
+          </button>
         </div>
       </div>
-    );
-  } catch (error) {
-    console.error(`❌ Error rendering loan ${index}:`, error, loan);
-    return (
-      <div key={`error-${index}`} className="p-4 border border-red-200 bg-red-50 rounded-lg">
-        <p className="text-red-600">Kitap yüklenirken hata oluştu</p>
-      </div>
-    );
-  }
+    </div>
+  );
 })}
                   </div>
                 )}
