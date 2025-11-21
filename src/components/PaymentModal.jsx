@@ -1,38 +1,12 @@
-// src/components/PaymentModal.jsx
+// src/components/PaymentModal.jsx - GÜNCELLENMİŞ VERSİYON
 import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { X, CreditCard, Loader, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
-// Stripe Key Debug
-console.log('🔑 Stripe Key Check:', {
-  STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY ? '✅ SET' : '❌ MISSING',
-  keyLength: process.env.STRIPE_PUBLISHABLE_KEY?.length,
-  keyPrefix: process.env.STRIPE_PUBLISHABLE_KEY?.substring(0, 8) + '...'
-});
-
-// Stripe'ı güvenli şekilde yükle
-const getStripeKey = () => {
-  const key = process.env.STRIPE_PUBLISHABLE_KEY;
-  
-  if (!key) {
-    console.error('❌ STRIPE_PUBLISHABLE_KEY bulunamadı!');
-    // Fallback test key (gerçek bir test key ile değiştirin)
-    return 'pk_test_51P1abc123def456ghi789jkl012mno345pqr678stu901vwx234yz';
-  }
-  
-  // Key formatını kontrol et
-  if (!key.startsWith('pk_')) {
-    console.error('❌ Geçersiz Stripe key formatı:', key?.substring(0, 20) + '...');
-    return 'pk_test_51P1abc123def456ghi789jkl012mno345pqr678stu901vwx234yz';
-  }
-  
-  console.log('✅ Geçerli Stripe key bulundu');
-  return key;
-};
-
-const stripePromise = loadStripe(getStripeKey());
+// Stripe Key
+const stripePromise = loadStripe(process.env.STRIPE_PUBLISHABLE_KEY);
 
 const CheckoutForm = ({ loan, onSuccess, onClose }) => {
   const stripe = useStripe();
@@ -40,21 +14,16 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [stripeReady, setStripeReady] = useState(false);
+  const [paymentElementReady, setPaymentElementReady] = useState(false);
   const { language } = useLanguage();
 
-  console.log('🔔 CheckoutForm - Stripe:', !!stripe, 'Elements:', !!elements, 'Ready:', stripeReady);
+  console.log('🔔 CheckoutForm - Stripe:', !!stripe, 'Elements:', !!elements, 'PaymentElementReady:', paymentElementReady);
 
-  // Stripe hazır olduğunda kontrol et
-  useEffect(() => {
-    if (stripe && elements) {
-      console.log('✅ Stripe Elements hazır!');
-      setStripeReady(true);
-    } else {
-      console.log('⏳ Stripe Elements yükleniyor...');
-      setStripeReady(false);
-    }
-  }, [stripe, elements]);
+  // Payment Element hazır olduğunda
+  const handlePaymentElementReady = () => {
+    console.log('✅ Payment Element MOUNT EDİLDİ!');
+    setPaymentElementReady(true);
+  };
 
   const texts = {
     tr: {
@@ -72,11 +41,11 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
       systemNotReady: 'Ödeme sistemi hazır değil',
       paymentError: 'Ödeme sırasında bir hata oluştu',
       unexpectedError: 'Ödeme işlemi sırasında beklenmeyen bir hata oluştu',
+      elementNotReady: 'Kart bilgileri henüz hazır değil. Lütfen bekleyin...',
       testCard: 'Test kartı: 4242 4242 4242 4242 - 04/24 - 242 - 42424',
       days: 'gün',
       securePayment: 'Güvenli ödeme',
-      stripeLoading: 'Stripe yükleniyor...',
-      stripeTimeout: 'Stripe yüklenemedi. Lütfen sayfayı yenileyin.'
+      stripeLoading: 'Kart bilgileri yükleniyor...'
     },
     en: {
       title: 'Late Fine Payment',
@@ -93,11 +62,11 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
       systemNotReady: 'Payment system not ready',
       paymentError: 'An error occurred during payment',
       unexpectedError: 'An unexpected error occurred during payment',
+      elementNotReady: 'Card information not ready yet. Please wait...',
       testCard: 'Test card: 4242 4242 4242 4242 - 04/24 - 242 - 42424',
       days: 'days',
       securePayment: 'Secure payment',
-      stripeLoading: 'Stripe loading...',
-      stripeTimeout: 'Stripe failed to load. Please refresh the page.'
+      stripeLoading: 'Card information loading...'
     }
   };
 
@@ -105,11 +74,21 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('💰 Ödeme formu gönderildi', { stripeReady, stripe: !!stripe, elements: !!elements });
+    console.log('💰 Ödeme formu gönderildi', { 
+      stripe: !!stripe, 
+      elements: !!elements, 
+      paymentElementReady 
+    });
     
-    if (!stripe || !elements || !stripeReady) {
-      console.error('❌ Stripe hazır değil!');
+    if (!stripe || !elements) {
+      console.error('❌ Stripe veya Elements hazır değil!');
       setError(t.systemNotReady);
+      return;
+    }
+
+    if (!paymentElementReady) {
+      console.error('❌ Payment Element henüz mount edilmemiş!');
+      setError(t.elementNotReady);
       return;
     }
 
@@ -124,12 +103,16 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
         confirmParams: {
           return_url: `${window.location.origin}/payment-success?loanId=${loan.id}`,
         },
-        redirect: 'if_required'
       });
 
       if (submitError) {
         console.error('❌ Stripe ödeme hatası:', submitError);
         setError(submitError.message || t.paymentError);
+        
+        // Özel hata mesajları
+        if (submitError.type === 'validation_error') {
+          setError('Lütfen tüm kart bilgilerini doğru şekilde doldurun.');
+        }
       } else {
         console.log('✅ Ödeme başarılı!');
         setMessage(t.paymentSuccess);
@@ -172,32 +155,41 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
         </div>
       </div>
 
-      {/* Kart Bilgileri */}
+      {/* Kart Bilgileri - GÜNCELLENDİ */}
       <div className="space-y-3">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           <CreditCard className="h-4 w-4 inline mr-1" />
           {t.cardInfo}
+          {!paymentElementReady && (
+            <span className="ml-2 text-xs text-yellow-600">
+              ({t.stripeLoading})
+            </span>
+          )}
         </label>
-        <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800 min-h-[120px] flex items-center justify-center">
-          {!stripeReady ? (
-            <div className="text-center py-4 text-gray-500">
-              <Loader className="h-6 w-6 animate-spin mx-auto mb-2" />
-              <div>{t.stripeLoading}</div>
-              <div className="text-xs mt-2 space-y-1">
-                <div>Stripe: {stripe ? '✅ Hazır' : '⏳ Yükleniyor'}</div>
-                <div>Elements: {elements ? '✅ Hazır' : '⏳ Yükleniyor'}</div>
-                <div>ClientSecret: {loan.clientSecret ? '✅ Var' : '❌ Yok'}</div>
-              </div>
-            </div>
-          ) : (
+        <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800 min-h-[120px]">
+          {stripe ? (
             <PaymentElement 
+              onReady={handlePaymentElementReady}
               options={{
-                layout: 'tabs',
+                layout: {
+                  type: 'tabs',
+                  defaultCollapsed: false,
+                },
                 fields: {
-                  billingDetails: 'never'
+                  billingDetails: {
+                    name: 'never',
+                    email: 'never',
+                    phone: 'never',
+                    address: 'never'
+                  }
                 }
               }}
             />
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              <Loader className="h-6 w-6 animate-spin mx-auto mb-2" />
+              <div>{t.stripeLoading}</div>
+            </div>
           )}
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
@@ -214,13 +206,15 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
       )}
 
       {error && (
-        <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg flex items-center">
-          <AlertCircle className="h-4 w-4 mr-2" />
-          <span>{error}</span>
+        <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg">
+          <div className="flex items-center">
+            <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span className="text-sm">{error}</span>
+          </div>
         </div>
       )}
 
-      {/* Butonlar */}
+      {/* Butonlar - GÜNCELLENDİ */}
       <div className="flex gap-3 pt-2">
         <button
           type="button"
@@ -232,13 +226,18 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
         </button>
         <button
           type="submit"
-          disabled={!stripeReady || loading}
-          className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          disabled={!paymentElementReady || loading}
+          className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:hover:bg-gray-400 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
               <Loader className="h-4 w-4 animate-spin" />
               {t.processing}
+            </>
+          ) : !paymentElementReady ? (
+            <>
+              <Loader className="h-4 w-4 animate-spin" />
+              {t.stripeLoading}
             </>
           ) : (
             <>
@@ -265,14 +264,10 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
   const [error, setError] = useState('');
   const { language } = useLanguage();
 
-  console.log('🔔 PaymentModal - isOpen:', isOpen, 'loan:', loan?.id, 'amount:', loan?.fineAmount);
-
   useEffect(() => {
     if (isOpen && loan) {
-      console.log('💰 Payment intent oluşturuluyor...');
       createPaymentIntent();
     } else {
-      console.log('❌ Modal kapalı veya loan yok');
       setClientSecret('');
       setError('');
       setLoading(false);
@@ -284,8 +279,6 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
     setError('');
     
     try {
-      console.log('📡 API çağrısı yapılıyor: /.netlify/functions/create-payment-intent');
-      
       const response = await fetch('/.netlify/functions/create-payment-intent', {
         method: 'POST',
         headers: { 
@@ -299,27 +292,20 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
         })
       });
       
-      console.log('📨 API Response status:', response.status);
-      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ API Error:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('💰 API Response data:', data);
       
       if (data.clientSecret) {
         setClientSecret(data.clientSecret);
-        console.log('✅ Client secret alındı!');
       } else if (data.error) {
         throw new Error(data.error);
       } else {
         throw new Error('Client secret alınamadı');
       }
     } catch (error) {
-      console.error('❌ Payment intent error:', error);
       const errorMessage = language === 'tr' 
         ? 'Ödeme bağlantısı kurulamadı. Lütfen daha sonra tekrar deneyin.'
         : 'Payment connection could not be established. Please try again later.';
@@ -332,8 +318,6 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
   if (!isOpen) {
     return null;
   }
-
-  console.log('🎉 Modal render - loading:', loading, 'clientSecret:', !!clientSecret, 'error:', error);
 
   const texts = {
     tr: {
