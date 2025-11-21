@@ -439,93 +439,73 @@ const Profile = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {userLoans.map((loan) => {
-                      const { fineDays, fineAmount } = calculateFine(loan);
-                      
-                      return (
-                        <div key={loan.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
-                          <div className="flex items-center space-x-4 flex-1">
-                            <img
-                              src={loan.bookCover || '/images/default-book-cover.jpg'}
-                              alt={loan.bookTitle}
-                              className="w-12 h-16 object-cover rounded border"
-                              
-                            />
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-gray-900 dark:text-white">
-                                {loan.bookTitle}
-                              </h3>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 mt-2">
-                                <div className="flex items-center">
-                                  <Calendar className="h-3 w-3 mr-1" />
-                                  <span>{texts.borrowedDate}: {formatDate(loan.borrowDate)}</span>
-                                </div>
-                                <div className="flex items-center">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  <span>{texts.dueDate}: {formatDate(loan.dueDate)}</span>
-                                </div>
-                              </div>
-                              
-                              {/* CEZA BİLGİSİ VE ÖDEME BUTONU */}
-                              {fineDays > 0 && (
-                                <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900 rounded-lg">
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <p className="text-yellow-800 dark:text-yellow-200 font-semibold">
-                                        ⏰ {fineDays} {texts.daysOverdue}
-                                      </p>
-                                      <p className="text-yellow-600 dark:text-yellow-400 text-sm">
-                                        💰 {texts.totalFine}: {fineAmount} TL
-                                      </p>
-                                    </div>
-                                    <button 
-  onClick={(e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    console.log('🎯 Buton tıklandı, loan:', loan);
-    
-    // ⬇️ Güvenli loan kontrolü
-    if (!loan) {
-      console.error('❌ Loan undefined!');
-      return;
-    }
-    
-    const { fineDays, fineAmount } = calculateFine(loan);
-    
-    // ⬇️ ID kontrolü
-    const loanId = loan._id?.toString() || loan.id;
-    if (!loanId) {
-      console.error('❌ Loan ID yok:', loan);
-      return;
-    }
-    
-    console.log('💰 Fine calculated:', { fineDays, fineAmount, loanId });
-    
-    setSelectedLoan({ 
-      ...loan, 
-      fineDays, 
-      fineAmount,
-      id: loanId
-    });
-    setShowPayment(true);
-  }}
-  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer"
->
-  💰 {texts.payFine}
-</button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <button className="btn-outline text-xs flex items-center gap-1 whitespace-nowrap">
-                            {texts.viewDetails}
-                            <ArrowRight className="h-3 w-3" />
-                          </button>
-                        </div>
-                      );
-                    })}
+                    // Profile.js'de butonu SİL ve YENİSİNİ YAZ:
+{userLoans.map((loan) => {
+  const { fineDays, fineAmount } = calculateFine(loan);
+  
+  return (
+    <div key={loan.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+      <div className="flex items-center space-x-4 flex-1">
+        <img
+          src={loan.bookCover || 'https://via.placeholder.com/128x192/4F46E5/FFFFFF?text=Kitap'}
+          alt={loan.bookTitle}
+          className="w-12 h-16 object-cover rounded border"
+        />
+        <div className="flex-1">
+          <h3 className="font-semibold text-gray-900 dark:text-white">
+            {loan.bookTitle}
+          </h3>
+          <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+            <div>Alınma: {formatDate(loan.borrowDate)}</div>
+            <div>Son Tarih: {formatDate(loan.dueDate)}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex flex-col items-end gap-2">
+        {/* CEZA BİLGİSİ */}
+        {fineDays > 0 && (
+          <div className="text-right">
+            <div className="text-yellow-600 font-semibold">
+              ⏰ {fineDays} gün gecikme
+            </div>
+            <div className="text-yellow-700 font-bold">
+              💰 {fineAmount} TL
+            </div>
+          </div>
+        )}
+        
+        {/* BUTON GRUBU */}
+        <div className="flex gap-2">
+          {fineDays > 0 && (
+            <button 
+              onClick={() => {
+                console.log('🎯 YENİ BUTON TIKLANDI!', loan);
+                alert('Buton çalışıyor!');
+                
+                const loanId = loan._id?.toString() || loan.id;
+                setSelectedLoan({ 
+                  ...loan, 
+                  fineDays, 
+                  fineAmount,
+                  id: loanId
+                });
+                setShowPayment(true);
+              }}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              ✅ Öde
+            </button>
+          )}
+          
+          <button className="btn-outline text-xs px-3 py-2">
+            Detay
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+})}
                   </div>
                 )}
               </div>
