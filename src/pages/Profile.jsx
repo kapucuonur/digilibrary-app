@@ -4,7 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { Edit3, Key, Calendar, BookOpen, X, Save, Clock, ArrowRight } from 'lucide-react';
 import { loanService } from '../services/api';
 import { toast } from 'react-toastify';
-import { PaymentModal } from '../components/PaymentModal';
+import PaymentModal from '../components/PaymentModal';
 
 const Profile = () => {
   console.log('🎯 PROFILE COMPONENT RENDERED!');

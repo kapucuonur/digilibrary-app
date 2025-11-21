@@ -331,5 +331,3 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
     </div>
   );
 };
-
-export default PaymentModal;
