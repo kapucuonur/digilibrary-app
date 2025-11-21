@@ -4,6 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { Edit3, Key, Calendar, BookOpen, X, Save, Clock, ArrowRight } from 'lucide-react';
 import { loanService } from '../services/api';
 import { toast } from 'react-toastify';
+import { PaymentModal } from '../components/PaymentModal';
 
 const Profile = () => {
   console.log('🎯 PROFILE COMPONENT RENDERED!');
@@ -20,6 +21,10 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [refreshCounter, setRefreshCounter] = useState(0);
+  
+  // PAYMENT STATE'LERİ
+  const [selectedLoan, setSelectedLoan] = useState(null);
+  const [showPayment, setShowPayment] = useState(false);
   
   // FORM STATE'LERİ
   const [formData, setFormData] = useState({
@@ -55,10 +60,7 @@ const Profile = () => {
         }
       } catch (error) {
         console.error('❌ Error loading loans:', error);
-        // Hata durumunda bile boş array set et
         setUserLoans([]);
-        
-        // Kullanıcıya bilgi ver
         toast.error(language === 'tr' 
           ? 'Kitaplar yüklenirken geçici bir sorun oluştu' 
           : 'Temporary issue while loading books'
@@ -72,12 +74,20 @@ const Profile = () => {
     loadUserLoans();
   }, [refreshCounter, language]);
 
+  // Ceza hesapla
+  const calculateFine = (loan) => {
+    const today = new Date();
+    const dueDate = new Date(loan.dueDate);
+    const fineDays = Math.max(0, Math.ceil((today - dueDate) / (1000 * 60 * 60 * 24)));
+    return { fineDays, fineAmount: fineDays * 1 }; // Günlük 1 TL
+  };
+
   const handleManualRefresh = () => {
     console.log('🔄 MANUAL REFRESH TRIGGERED');
     setRefreshCounter(prev => prev + 1);
   };
 
-  // Mock user data - loans sayısını güncelle
+  // Mock user data
   const userData = {
     firstName: user?.firstName || 'Test',
     lastName: user?.lastName || 'Kullanıcı',
@@ -85,7 +95,7 @@ const Profile = () => {
     phone: user?.phone || '+90 555 123 4567',
     joinDate: '2024-01-01',
     totalBooks: 15,
-    currentlyReading: userLoans.length // 🔥 ÖNEMLİ: loans sayısını kullan
+    currentlyReading: userLoans.length
   };
 
   // Profil düzenleme işlevi
@@ -158,7 +168,6 @@ const Profile = () => {
     setError('');
     setSuccess('');
 
-    // Şifre kontrolü
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setError(language === 'tr' ? 'Yeni şifreler eşleşmiyor' : 'New passwords do not match');
       setLoading(false);
@@ -219,7 +228,10 @@ const Profile = () => {
         borrowedDate: 'Alınma Tarihi',
         dueDate: 'Son Teslim Tarihi',
         viewDetails: 'Detayları Gör',
-        refresh: 'Yenile'
+        refresh: 'Yenile',
+        payFine: 'Ceza Öde',
+        daysOverdue: 'gün gecikme',
+        totalFine: 'Toplam ceza'
       };
     } else {
       return {
@@ -253,7 +265,10 @@ const Profile = () => {
         borrowedDate: 'Borrowed Date',
         dueDate: 'Due Date',
         viewDetails: 'View Details',
-        refresh: 'Refresh'
+        refresh: 'Refresh',
+        payFine: 'Pay Fine',
+        daysOverdue: 'days overdue',
+        totalFine: 'Total fine'
       };
     }
   };
@@ -405,39 +420,73 @@ const Profile = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {userLoans.map((loan) => (
-                      <div key={loan.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
-                        <div className="flex items-center space-x-4 flex-1">
-                          <img
-                            src={loan.bookCover || '/images/default-book-cover.jpg'}
-                            alt={loan.bookTitle}
-                            className="w-12 h-16 object-cover rounded border"
-                            onError={(e) => {
-                              e.target.src = '/images/default-book-cover.jpg';
-                            }}
-                          />
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 dark:text-white">
-                              {loan.bookTitle}
-                            </h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 mt-2">
-                              <div className="flex items-center">
-                                <Calendar className="h-3 w-3 mr-1" />
-                                <span>{texts.borrowedDate}: {formatDate(loan.borrowedDate)}</span>
+                    {userLoans.map((loan) => {
+                      const { fineDays, fineAmount } = calculateFine(loan);
+                      
+                      return (
+                        <div key={loan.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+                          <div className="flex items-center space-x-4 flex-1">
+                            <img
+                              src={loan.bookCover || '/images/default-book-cover.jpg'}
+                              alt={loan.bookTitle}
+                              className="w-12 h-16 object-cover rounded border"
+                              onError={(e) => {
+                                e.target.src = '/images/default-book-cover.jpg';
+                              }}
+                            />
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-900 dark:text-white">
+                                {loan.bookTitle}
+                              </h3>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                <div className="flex items-center">
+                                  <Calendar className="h-3 w-3 mr-1" />
+                                  <span>{texts.borrowedDate}: {formatDate(loan.borrowDate)}</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  <span>{texts.dueDate}: {formatDate(loan.dueDate)}</span>
+                                </div>
                               </div>
-                              <div className="flex items-center">
-                                <Clock className="h-3 w-3 mr-1" />
-                                <span>{texts.dueDate}: {formatDate(loan.dueDate)}</span>
-                              </div>
+                              
+                              {/* CEZA BİLGİSİ VE ÖDEME BUTONU */}
+                              {fineDays > 0 && (
+                                <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900 rounded-lg">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="text-yellow-800 dark:text-yellow-200 font-semibold">
+                                        ⏰ {fineDays} {texts.daysOverdue}
+                                      </p>
+                                      <p className="text-yellow-600 dark:text-yellow-400 text-sm">
+                                        💰 {texts.totalFine}: {fineAmount} TL
+                                      </p>
+                                    </div>
+                                    <button 
+                                      onClick={() => {
+                                        setSelectedLoan({ 
+                                          ...loan, 
+                                          fineDays, 
+                                          fineAmount,
+                                          id: loan.id
+                                        });
+                                        setShowPayment(true);
+                                      }}
+                                      className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                                    >
+                                      {texts.payFine}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
+                          <button className="btn-outline text-xs flex items-center gap-1 whitespace-nowrap">
+                            {texts.viewDetails}
+                            <ArrowRight className="h-3 w-3" />
+                          </button>
                         </div>
-                        <button className="btn-outline text-xs flex items-center gap-1 whitespace-nowrap">
-                          {texts.viewDetails}
-                          <ArrowRight className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -651,6 +700,21 @@ const Profile = () => {
             </div>
           </div>
         )}
+
+        {/* Payment Modal */}
+        <PaymentModal 
+          loan={selectedLoan}
+          isOpen={showPayment}
+          onClose={() => setShowPayment(false)}
+          onSuccess={() => {
+            setShowPayment(false);
+            handleManualRefresh();
+            toast.success(language === 'tr' 
+              ? 'Ceza ödemesi başarıyla tamamlandı!' 
+              : 'Fine payment completed successfully!'
+            );
+          }}
+        />
       </div>
     </div>
   );
