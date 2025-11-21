@@ -8,21 +8,15 @@ export const handler = async (event) => {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS' // ⬅️ EKLENDİ
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
-  // Preflight request
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
 
-  // Sadece POST methoduna izin ver
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method Not Allowed' })
-    };
+    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
   try {
@@ -30,6 +24,8 @@ export const handler = async (event) => {
     
     const { loanId, amount, bookTitle, fineDays } = JSON.parse(event.body);
     
+    console.log('📦 Gelen veri:', { loanId, amount, bookTitle, fineDays });
+
     // Input validation
     if (!loanId || !amount || amount <= 0) {
       return {
@@ -38,8 +34,6 @@ export const handler = async (event) => {
         body: JSON.stringify({ error: 'Geçersiz loanId veya amount' })
       };
     }
-
-    console.log('💳 Payment intent için:', { loanId, amount, bookTitle, fineDays });
 
     // Payment Intent oluştur
     const paymentIntent = await stripe.paymentIntents.create({
@@ -50,7 +44,6 @@ export const handler = async (event) => {
         bookTitle: bookTitle || 'Bilinmeyen Kitap',
         fineDays: fineDays || 0
       },
-      description: `Gecikme cezası - ${bookTitle || 'Kitap'}`,
       automatic_payment_methods: {
         enabled: true,
       },
@@ -63,8 +56,7 @@ export const handler = async (event) => {
       headers,
       body: JSON.stringify({
         clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id,
-        amount: amount
+        paymentIntentId: paymentIntent.id
       })
     };
   } catch (error) {
