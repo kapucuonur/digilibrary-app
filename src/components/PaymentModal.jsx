@@ -1,10 +1,10 @@
-// components/PaymentModal.jsx
+// src/components/PaymentModal.jsx
 import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { X, CreditCard, Loader, AlertCircle } from 'lucide-react';
 
-// Stripe'ı yükle - environment variable kontrolü
+// Stripe'ı yükle
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLISHABLE_KEY);
 
 // Ödeme formu component'ı
@@ -14,8 +14,6 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-
-  console.log('🔔 CheckoutForm rendered - Stripe:', !!stripe, 'Elements:', !!elements);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,8 +28,6 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
     setMessage('Ödeme işleniyor...');
 
     try {
-      console.log('💰 Ödeme başlatılıyor...');
-      
       const { error: submitError } = await stripe.confirmPayment({
         elements,
         confirmParams: {
@@ -41,19 +37,14 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
       });
 
       if (submitError) {
-        console.error('❌ Stripe error:', submitError);
         setError(submitError.message || 'Ödeme sırasında bir hata oluştu');
       } else {
-        console.log('✅ Ödeme başarılı!');
         setMessage('Ödeme başarıyla tamamlandı!');
-        
-        // Başarı callback'ini çağır
         setTimeout(() => {
           onSuccess();
         }, 1500);
       }
     } catch (err) {
-      console.error('❌ General error:', err);
       setError('Ödeme işlemi sırasında beklenmeyen bir hata oluştu');
     } finally {
       setLoading(false);
@@ -88,14 +79,7 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
           Kart Bilgileri
         </label>
         <div className="border border-gray-300 rounded-lg p-3 bg-white">
-          <PaymentElement 
-            options={{
-              layout: {
-                type: 'tabs',
-                defaultCollapsed: false
-              }
-            }}
-          />
+          <PaymentElement />
         </div>
         <p className="text-xs text-gray-500 text-center">
           💳 Test kartı: 4242 4242 4242 4242 - 04/24 - 242 - 42424
@@ -105,18 +89,14 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
       {/* Mesaj ve Hata Alanları */}
       {message && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center">
-          <div className="flex-shrink-0">
-            <Loader className="h-4 w-4 animate-spin" />
-          </div>
+          <Loader className="h-4 w-4 animate-spin" />
           <span className="ml-2">{message}</span>
         </div>
       )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center">
-          <div className="flex-shrink-0">
-            <AlertCircle className="h-4 w-4" />
-          </div>
+          <AlertCircle className="h-4 w-4" />
           <span className="ml-2">{error}</span>
         </div>
       )}
@@ -153,25 +133,16 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
   );
 };
 
-// Ana PaymentModal Component'ı
+// Ana PaymentModal Component'ı - DEFAULT EXPORT
 const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
   const [clientSecret, setClientSecret] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  console.log('🔔 PaymentModal PROPS:', { 
-    isOpen, 
-    loan: loan ? { id: loan.id, title: loan.bookTitle, amount: loan.fineAmount } : 'no loan' 
-  });
-
   useEffect(() => {
-    console.log('🔄 PaymentModal useEffect triggered', { isOpen, loanId: loan?.id });
-    
     if (isOpen && loan) {
-      console.log('💰 Creating payment intent for loan:', loan.id, 'Amount:', loan.fineAmount);
       createPaymentIntent();
     } else {
-      console.log('❌ Modal kapalı veya loan yok, resetting...');
       setClientSecret('');
       setError('');
       setLoading(false);
@@ -183,8 +154,6 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
     setError('');
     
     try {
-      console.log('📡 API Calling: /.netlify/functions/create-payment-intent');
-      
       const response = await fetch('/.netlify/functions/create-payment-intent', {
         method: 'POST',
         headers: { 
@@ -198,42 +167,33 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
         })
       });
       
-      console.log('📨 API Response Status:', response.status);
-      
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('💰 API Response Data:', data);
       
       if (data.clientSecret) {
         setClientSecret(data.clientSecret);
-        console.log('✅ Client secret başarıyla alındı');
       } else if (data.error) {
         throw new Error(data.error);
       } else {
         throw new Error('Client secret alınamadı');
       }
     } catch (error) {
-      console.error('❌ Payment intent creation error:', error);
       setError(error.message || 'Ödeme bağlantısı kurulamadı. Lütfen daha sonra tekrar deneyin.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Modal kapalıysa hiçbir şey render etme
   if (!isOpen) {
     return null;
   }
 
-  console.log('🎉 PaymentModal rendering - loading:', loading, 'clientSecret:', !!clientSecret, 'error:', error);
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fadeIn">
-      <div className="bg-white rounded-xl max-w-md w-full shadow-2xl transform transition-all animate-scaleIn">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl max-w-md w-full shadow-2xl">
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">Gecikme Cezası Ödeme</h2>
@@ -252,7 +212,6 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
             <div className="text-center py-8">
               <Loader className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
               <p className="text-gray-600">Ödeme hazırlanıyor...</p>
-              <p className="text-sm text-gray-500 mt-1">Lütfen bekleyin</p>
             </div>
           ) : error ? (
             <div className="text-center py-6">
@@ -281,10 +240,6 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
                 clientSecret,
                 appearance: {
                   theme: 'stripe',
-                  variables: {
-                    colorPrimary: '#059669',
-                    borderRadius: '8px'
-                  }
                 }
               }}
             >
@@ -301,33 +256,10 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
             </div>
           )}
         </div>
-
-        {/* Footer Info */}
-        <div className="px-6 pb-4">
-          <div className="text-center text-xs text-gray-500 border-t border-gray-100 pt-4">
-            <p>🔒 Güvenli ödeme işlemi</p>
-            <p className="mt-1">Stripe ile korunmaktadır</p>
-          </div>
-        </div>
       </div>
-
-      {/* Custom CSS for animations */}
-      <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes scaleIn {
-          from { transform: scale(0.95); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-out;
-        }
-        .animate-scaleIn {
-          animation: scaleIn 0.2s ease-out;
-        }
-      `}</style>
     </div>
   );
 };
+
+// ✅ BU SATIR ÇOK ÖNEMLİ - DEFAULT EXPORT
+export default PaymentModal;
