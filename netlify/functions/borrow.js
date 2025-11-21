@@ -1,7 +1,7 @@
 import { MongoClient, ObjectId } from 'mongodb';
 
 // Axios
-const axios = require('axios');
+import axios from 'axios';
 
 export const handler = async (event, context) => {
   console.log('=== BORROW FUNCTION DEBUG START ===');

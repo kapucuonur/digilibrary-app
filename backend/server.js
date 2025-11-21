@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 // Google Books API Key - Kendi key'ini buraya yaz
-const GOOGLE_BOOKS_API_KEY = process.env.GOOGLE_BOOKS_API_KEY || 'AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+const GOOGLE_BOOKS_API_KEY = process.env.GOOGLE_BOOKS_API_KEY ;
 const GOOGLE_BOOKS_API_URL = 'https://www.googleapis.com/books/v1/volumes';
 
 // Data storage

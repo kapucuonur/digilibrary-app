@@ -322,4 +322,6 @@ logs/
 *.seed
 *.pid.lock
 coverage/
-.nyc_output
+.nyc_output.env
+.history/
+*.tmp
