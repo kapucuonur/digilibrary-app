@@ -4,8 +4,6 @@ A modern, full-stack digital library application with AI-powered chatbot, built 
 
 ## 📱 Screenshots
 
-_(Add your application screenshots here - replace these placeholders with your actual screenshots)_
-
 | Home & Dashboard                     | Book Search                              | Chatbot Assistant                          |
 | ------------------------------------ | ---------------------------------------- | ------------------------------------------ |
 | ![Home](public/screenshots/home.png) | ![Search](public/screenshots/search.png) | ![Chatbot](public/screenshots/chatbot.png) |
