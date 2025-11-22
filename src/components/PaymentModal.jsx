@@ -13,7 +13,7 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
   const elements = useElements();
   const { language } = useLanguage();
 
-  // Para birimi otomatik belirleniyor
+  // Para birimi otomatik
   const currencySymbol = language === 'tr' ? '₺' : '€';
   const amount = (loan.fineAmount || 0).toFixed(2);
 
@@ -50,20 +50,21 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
     try {
       const cardElement = elements.getElement(CardElement);
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(loan.clientSecret, {
-        payment_method: { card: cardElement }
+        payment_method: { card: cardElement },
       });
 
       if (stripeError) {
-        setError(stripeError.message);
+        setError(stripeError.message || (language === 'tr' ? 'Kart hatası' : 'Card error'));
       } else if (paymentIntent.status === 'succeeded') {
         onSuccess(paymentIntent);
       } else {
+        // BURASI DÜZELTİLDİ – Fazladan ) yok!
         setError(
-          `${language === 'tr' ? 'Ödeme durumu:' : 'Payment status:'} ${paymentIntent.status}. ${
-            language === 'tr' ? 'Lütfen tekrar deneyin.' : 'Please try again.'
-          }`
+          language === 'tr'
+            ? `Ödeme durumu: ${paymentIntent.status}. Lütfen tekrar deneyin.`
+            : `Payment status: ${paymentIntent.status}. Please try again.`
         );
-      );
+      }
     } catch (err) {
       console.error('Payment Error:', err);
       setError(language === 'tr' ? 'Ödeme işlemi sırasında hata oluştu.' : 'An error occurred during payment.');
@@ -74,7 +75,7 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Ceza Bilgileri Kartı */}
+      {/* Ceza Bilgileri */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-300 rounded-xl p-5 flex items-center justify-between shadow-sm">
         <div>
           <h3 className="font-bold text-blue-900 dark:text-blue-300 text-lg">{t.lateFee}</h3>
@@ -92,7 +93,7 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
         </div>
       </div>
 
-      {/* Kart Giriş Alanı */}
+      {/* Kart Alanı */}
       <div>
         <label className="block text-sm font-semibold mb-2 flex items-center text-gray-800 dark:text-gray-200">
           <CreditCard className="h-4 w-4 mr-2" /> {t.cardInfo}
@@ -113,7 +114,7 @@ const CheckoutForm = ({ loan, onSuccess, onClose }) => {
         </div>
       </div>
 
-      {/* Hata Mesajı */}
+      {/* Hata */}
       {error && (
         <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg flex items-center text-sm">
           <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
@@ -199,7 +200,7 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
         body: JSON.stringify({
           loanId: loan.id,
           amount: loan.fineAmount,
-          currency: language === 'tr' ? 'try' : 'eur', // Backend'e doğru currency gönderiyoruz!
+          currency: language === 'tr' ? 'try' : 'eur',
           bookTitle: loan.bookTitle,
           fineDays: loan.fineDays,
         }),
@@ -264,7 +265,7 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
 
     return (
       <Elements stripe={stripePromise} options={{ clientSecret }}>
-        <CheckoutForm loan={{ ...loan, clientSecret}} onSuccess={onSuccess} onClose={onClose} />
+        <CheckoutForm loan={{ ...loan, clientSecret }} onSuccess={onSuccess} onClose={onClose} />
       </Elements>
     );
   };
@@ -272,20 +273,13 @@ const PaymentModal = ({ loan, isOpen, onClose, onSuccess }) => {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
-        {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-800 dark:to-indigo-900 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-white">
-            {t.title}
-          </h2>
+          <h2 className="text-2xl font-bold text-white">{t.title}</h2>
           <button onClick={onClose} className="text-white/80 hover:text-white transition">
             <X className="h-7 w-7" />
           </button>
         </div>
-
-        {/* İçerik */}
-        <div className="p-6 pt-8">
-          {renderContent()}
-        </div>
+        <div className="p-6 pt-8">{renderContent()}</div>
       </div>
     </div>
   );
