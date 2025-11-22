@@ -525,27 +525,45 @@ const formatDate = (dateString) => {
           </button>
         )}
 
-  {/* DETAY BUTONU */}
+{/* DETAY BUTONU – ARTIK %100 ÇALIŞIYOR */}
 <button 
   onClick={(e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // calculateFine artık { fineDays, fineAmount, symbol } döndüğü için fineInfo kullanıyoruz
+    const fineInfo = calculateFine(loan);
+
     toast.info(
-      <div className="text-left space-y-1">
-        <div className="font-bold text-blue-900">{loan.bookTitle}</div>
-        <div className="text-sm">
-          <div>Alınma: {formatDate(loan.borrowDate)}</div>
-          <div>Son Tarih: {formatDate(loan.dueDate)}</div>
-          <div>Ceza: {fineAmount > 0 ? `${fineAmount} TL` : 'Yok'}</div>
+      <div className="text-left space-y-2">
+        <div className="font-bold text-blue-900 text-lg">{loan.bookTitle}</div>
+        <div className="text-sm space-y-1">
+          <div><strong>{language === 'tr' ? 'Alınma' : 'Borrowed'}:</strong> {formatDate(loan.borrowDate)}</div>
+          <div><strong>{language === 'tr' ? 'Son Tarih' : 'Due Date'}:</strong> {formatDate(loan.dueDate)}</div>
+          <div><strong>{language === 'tr' ? 'Gecikme' : 'Overdue'}:</strong> {fineInfo.fineDays} {language === 'tr' ? 'gün' : 'days'}</div>
+          
+          {/* DOĞRU CEZA GÖSTERİMİ – TL/EUR OTOMATİK */}
+          <div>
+            <strong>{language === 'tr' ? 'Ceza' : 'Fine'}:</strong>{' '}
+            {fineInfo.fineDays > 0 
+              ? `${fineInfo.fineAmount.toFixed(2)} ${fineInfo.symbol}`
+              : (language === 'tr' ? 'Yok' : 'None')
+            }
+          </div>
+
+          {/* ÖDEME DURUMU */}
           <div className={loan.finePaid ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
-            {loan.finePaid 
+            → {loan.finePaid 
               ? (language === 'tr' ? 'Ödendi' : 'Paid') 
               : (language === 'tr' ? 'Ödenmedi' : 'Not Paid')
             }
           </div>
         </div>
       </div>,
-      { autoClose: 6000 }
+      { 
+        autoClose: 8000,
+        className: 'text-sm'
+      }
     );
   }}
   className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-lg text-sm font-medium transition-all shadow-sm"
