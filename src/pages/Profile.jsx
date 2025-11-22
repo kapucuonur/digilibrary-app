@@ -760,14 +760,26 @@ const formatDate = (dateString) => {
   isOpen={showPayment}
   onClose={() => setShowPayment(false)}
   onSuccess={() => {
-    setLoans(prevLoans => 
+    // DOĞRU: setUserLoans kullanıyoruz!
+    setUserLoans(prevLoans => 
       prevLoans.map(loan => 
-        loan.id === selectedLoan.id 
-          ? { ...loan, finePaid: true, fineAmount: 0 }
+        loan.id === selectedLoan?.id 
+          ? { 
+              ...loan, 
+              finePaid: true, 
+              fineAmount: 0,
+              paidAt: new Date().toISOString()
+            } 
           : loan
       )
     );
-    toast.success('Ceza ödendi ve kapatıldı!');
+
+    toast.success(
+      language === 'tr' 
+        ? 'Ceza başarıyla ödendi ve kapatıldı!' 
+        : 'Fine paid and closed successfully!'
+    );
+
     setShowPayment(false);
   }}
 />
