@@ -760,7 +760,9 @@ const formatDate = (dateString) => {
   isOpen={showPayment}
   onClose={() => setShowPayment(false)}
   onSuccess={() => {
-    // DOĞRU: setUserLoans kullanıyoruz!
+    console.log('Ödeme başarılı, ceza kapatılıyor:', selectedLoan?.id);
+
+    
     setUserLoans(prevLoans => 
       prevLoans.map(loan => 
         loan.id === selectedLoan?.id 
