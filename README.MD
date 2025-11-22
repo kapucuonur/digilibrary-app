@@ -244,6 +244,7 @@ This project is licensed under the MIT License.
 **Onur Kapucu**
 
 - GitHub: [@kapucuonur](https://github.com/kapucuonur)
+- Deploy: (https://digilibray.netlify.app)
 
 ## 🙏 Acknowledgments
 
