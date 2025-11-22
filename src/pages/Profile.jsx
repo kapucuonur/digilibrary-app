@@ -539,37 +539,40 @@ const formatDate = (dateString) => {
       }}
       className="bg-green-500 hover:bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-md"
     >
-      Öde
+      {language === 'tr' ? 'Öde' : 'Pay'}
     </button>
   )}
 
-  {/* DETAY BUTONU – HER ZAMAN ÇALIŞIR */}
-  <button 
-    onClick={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      toast.info(
-        <div className="text-left space-y-1">
-          <div className="font-bold text-blue-900">{loan.bookTitle}</div>
-          <div className="text-sm">
-            <div>Alınma: {formatDate(loan.borrowDate)}</div>
-            <div>Son Tarih: {formatDate(loan.dueDate)}</div>
-            <div>Ceza: {fineAmount > 0 ? `${fineAmount} TL` : 'Yok'}</div>
-            <div className={loan.finePaid ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
-              {loan.finePaid ? 'Ödendi' : 'Ödenmedi'}
-            </div>
+  {/* DETAY BUTONU */}
+<button 
+  onClick={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toast.info(
+      <div className="text-left space-y-1">
+        <div className="font-bold text-blue-900">{loan.bookTitle}</div>
+        <div className="text-sm">
+          <div>Alınma: {formatDate(loan.borrowDate)}</div>
+          <div>Son Tarih: {formatDate(loan.dueDate)}</div>
+          <div>Ceza: {fineAmount > 0 ? `${fineAmount} TL` : 'Yok'}</div>
+          <div className={loan.finePaid ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
+            {loan.finePaid 
+              ? (language === 'tr' ? 'Ödendi' : 'Paid') 
+              : (language === 'tr' ? 'Ödenmedi' : 'Not Paid')
+            }
           </div>
-        </div>,
-        { autoClose: 6000 }
-      );
-    }}
-    className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-lg text-sm font-medium transition-all shadow-sm"
-  >
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-    Detay
-  </button>
+        </div>
+      </div>,
+      { autoClose: 6000 }
+    );
+  }}
+  className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-lg text-sm font-medium transition-all shadow-sm"
+>
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  {language === 'tr' ? 'Detay' : 'Detail'}
+</button>
 </div>
       </div>
     </div>
