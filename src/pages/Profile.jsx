@@ -475,14 +475,13 @@ const formatDate = (dateString) => {
   return (
     <div key={loan.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
       
-      {/* BURASI - IMAGE TAG'İ */}
+      {/* Kitap Resmi ve Bilgileri */}
       <div className="flex items-center space-x-4 flex-1">
         <img
           src={loan.bookCover}
           alt={loan.bookTitle}
           className="w-12 h-16 object-cover rounded border"
           onError={(e) => {
-            // FALLBACK EKLENECEK
             e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDEyOCAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEyOCIgaGVpZ2h0PSIxOTIiIGZpbGw9IiM0RjQ2RTUiLz48dGV4dCB4PSI2NCIgeT0iOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwiPktpdGFwPC90ZXh0Pjwvc3ZnPg==';
           }}
         />
@@ -497,28 +496,45 @@ const formatDate = (dateString) => {
         </div>
       </div>
       
-      {/* Butonlar */}
-      <div className="flex flex-col items-end gap-2">
+      {/* Ceza Durumu + Öde Butonu */}
+      <div className="flex flex-col items-end gap-3">
+
+        {/* CEZA DURUMU: Ödendi mi? */}
         {fineDays > 0 && (
           <div className="text-right">
-            <div className="text-yellow-600 font-semibold">
-              ⏰ {fineDays} gün gecikme
-            </div>
-            <div className="text-yellow-700 font-bold">
-              💰 {fineAmount} TL
-            </div>
+            {loan.finePaid ? (
+              // ÖDENDİ DURUMU → YEŞİL TİK
+              <div className="flex items-center gap-2 justify-end text-green-600 font-bold">
+                <span className="text-2xl">Ödendi</span>
+                {loan.paidAt && (
+                  <span className="text-xs text-green-600 opacity-80">
+                    ({formatDate(loan.paidAt)})
+                  </span>
+                )}
+              </div>
+            ) : (
+              // HENÜZ ÖDENMEDİ → SARI UYARI
+              <>
+                <div className="text-yellow-600 font-semibold">
+                  {fineDays} gün gecikme
+                </div>
+                <div className="text-yellow-700 font-bold text-lg">
+                  {fineAmount} TL
+                </div>
+              </>
+            )}
           </div>
         )}
-        
+
+        {/* ÖDE BUTONU – Sadece ödenmediyse göster */}
         <div className="flex gap-2">
-          {fineDays > 0 && (
+          {fineDays > 0 && !loan.finePaid && (
             <button 
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🎯 ÖDEME BUTONU TIKLANDI!', loan);
+                console.log('ÖDEME BUTONU TIKLANDI!', loan);
                 
-                // Modal'ı aç
                 setSelectedLoan({ 
                   ...loan, 
                   fineDays, 
@@ -526,13 +542,14 @@ const formatDate = (dateString) => {
                 });
                 setShowPayment(true);
               }}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              className="bg-green-500 hover:bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-md"
             >
-              ✅ Öde
+              Öde
             </button>
           )}
-          
-          <button className="border border-gray-300 text-gray-700 px-3 py-2 rounded text-xs">
+
+          {/* Detay butonu her zaman görünür */}
+          <button className="border border-gray-300 text-gray-700 px-3 py-2 rounded text-xs hover:bg-gray-100">
             Detay
           </button>
         </div>
@@ -770,7 +787,8 @@ const formatDate = (dateString) => {
               ...loan, 
               finePaid: true, 
               fineAmount: 0,
-              paidAt: new Date().toISOString()
+              paidAt: new Date().toISOString(),
+              paymentStatus: 'paid'
             } 
           : loan
       )
