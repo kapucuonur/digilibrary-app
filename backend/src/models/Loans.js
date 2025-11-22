@@ -28,7 +28,7 @@ const loanSchema = new mongoose.Schema({
   renewalCount: {
     type: Number,
     default: 0,
-    max: 1 // Maximum 1 renewal allowed
+    max: 1
   },
   fineAmount: {
     type: Number,
@@ -38,33 +38,59 @@ const loanSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  paidAt: Date, // Ödeme tarihi (isteğe bağlı ama güzel olur)
+  
+  // YENİ: Ceza hangi para biriminde?
+  fineCurrency: {
+    type: String,
+    enum: ['TRY', 'EUR'],
+    default: 'TRY' // Varsayılan TL
+  },
+
   notes: String
 }, {
   timestamps: true
 });
 
-// Calculate due date (14 days from borrow date)
+// Due date otomatik 14 gün
 loanSchema.pre('save', function(next) {
-  if (this.isNew) {
-    const dueDate = new Date(this.borrowDate);
-    dueDate.setDate(dueDate.getDate() + 14);
-    this.dueDate = dueDate;
+  if (this.isNew && !this.dueDate) {
+    const due = new Date(this.borrowDate);
+    due.setDate(due.getDate() + 14);
+    this.dueDate = due;
   }
   next();
 });
 
-// Check if loan is overdue
+// Gecikme kontrolü
 loanSchema.methods.isOverdue = function() {
   return this.status === 'ACTIVE' && new Date() > this.dueDate;
 };
 
-// Calculate fine
+// Ceza hesaplama — artık currency'ye göre!
 loanSchema.methods.calculateFine = function() {
-  if (this.isOverdue()) {
-    const overdueDays = Math.ceil((new Date() - this.dueDate) / (1000 * 60 * 60 * 24));
-    return overdueDays * 5; // 5 TL per day
+  if (!this.isOverdue()) return 0;
+
+  const overdueDays = Math.ceil((new Date() - this.dueDate) / (1000 * 60 * 60 * 24));
+  
+  // Günlük ceza miktarı (para birimine göre)
+  const dailyFine = this.fineCurrency === 'EUR' ? 0.50 : 5.00; // 0.50€ veya 5₺
+
+  return Math.round(overdueDays * dailyFine * 100) / 100; // 2 ondalık
+};
+
+// Bonus: Fine'ı güncelle ve kaydet (kullanışlı metod)
+loanSchema.methods.updateFine = async function() {
+  const fine = this.calculateFine();
+  this.fineAmount = fine;
+  
+  // Eğer ceza sıfır ise, ödenmiş sayalım (opsiyonel)
+  if (fine === 0) {
+    this.finePaid = true;
+    this.fineCurrency = 'TRY'; // sıfır cezada önemli değil
   }
-  return 0;
+
+  await this.save();
 };
 
 module.exports = mongoose.model('Loan', loanSchema);
