@@ -6,13 +6,13 @@ A modern, full-stack digital library application with AI-powered chatbot, built 
 
 _(Add your application screenshots here - replace these placeholders with your actual screenshots)_
 
-| Home & Dashboard              | Book Search                       | Chatbot Assistant                   |
-| ----------------------------- | --------------------------------- | ----------------------------------- |
-| ![Home](screenshots/home.png) | ![Search](screenshots/search.png) | ![Chatbot](screenshots/chatbot.png) |
+| Home & Dashboard                     | Book Search                              | Chatbot Assistant                          |
+| ------------------------------------ | ---------------------------------------- | ------------------------------------------ |
+| ![Home](public/screenshots/home.png) | ![Search](public/screenshots/search.png) | ![Chatbot](public/screenshots/chatbot.png) |
 
-| Reading Interface                   | User Profile                        | Payment Process                     |
-| ----------------------------------- | ----------------------------------- | ----------------------------------- |
-| ![Reading](screenshots/reading.png) | ![Profile](screenshots/profile.png) | ![Payment](screenshots/payment.png) |
+| Reading Interface                          | User Profile                               | Payment Process                            |
+| ------------------------------------------ | ------------------------------------------ | ------------------------------------------ |
+| ![Reading](public/screenshots/reading.png) | ![Profile](public/screenshots/profile.png) | ![Payment](public/screenshots/payment.png) |
 
 ## ✨ Features
 
