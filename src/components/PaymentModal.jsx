@@ -5,7 +5,7 @@ import { X, CreditCard, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 
 // VITE UYUMLU – ARTIK ÇALIŞACAK!
 const PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-
+console.log('Stripe Key:', PUBLISHABLE_KEY?.substring(0, 10) + '...');
 // Debug amaçlı (isteğe bağlı – sonra silebilirsin)
 if (!PUBLISHABLE_KEY) {
   console.error('VITE_STRIPE_PUBLISHABLE_KEY eksik! Netlify ortam değişkenlerini kontrol et.');
