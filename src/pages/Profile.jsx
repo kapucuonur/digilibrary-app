@@ -755,33 +755,19 @@ const formatDate = (dateString) => {
         )}
 
 {/* Payment Modal */}
-{/* Payment Modal */}
 <PaymentModal 
   loan={selectedLoan}
   isOpen={showPayment}
   onClose={() => setShowPayment(false)}
-  onSuccess={(paymentIntent) => {
-    
+  onSuccess={() => {
     setLoans(prevLoans => 
       prevLoans.map(loan => 
         loan.id === selectedLoan.id 
-          ? {
-              ...loan,
-              finePaid: true,
-              fineAmount: 0,
-              paidAt: new Date().toISOString(),
-              paymentIntentId: paymentIntent.id
-            }
+          ? { ...loan, finePaid: true, fineAmount: 0 }
           : loan
       )
     );
-
-    toast.success(
-      language === 'tr'
-        ? 'Ceza başarıyla ödendi ve kapatıldı!'
-        : 'Fine paid and closed successfully!'
-    );
-
+    toast.success('Ceza ödendi ve kapatıldı!');
     setShowPayment(false);
   }}
 />
