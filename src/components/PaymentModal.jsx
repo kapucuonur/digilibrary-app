@@ -3,17 +3,13 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { X, CreditCard, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 
-// VITE UYUMLU – ARTIK ÇALIŞACAK!
 const PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-console.log('Stripe Key:', PUBLISHABLE_KEY?.substring(0, 10) + '...');
-// Debug amaçlı (isteğe bağlı – sonra silebilirsin)
-if (!PUBLISHABLE_KEY) {
-  console.error('VITE_STRIPE_PUBLISHABLE_KEY eksik! Netlify ortam değişkenlerini kontrol et.');
-}
+
+console.log('Stripe Key:', PUBLISHABLE_KEY?.substring(0, 20) + '...'); // bu logu görürsen tamamdır
 
 const stripePromise = PUBLISHABLE_KEY 
-  ? loadStripe(PUBLISHABLE_KEY) 
-  : Promise.resolve(null); // Anahtar yoksa boş Promise döndür
+  ? loadStripe(PUBLISHABLE_KEY)
+  : Promise.resolve(null);
 
 // --- CheckoutForm Bileşeni ---
 const CheckoutForm = ({ loan, onSuccess, onClose, onApiError }) => {
