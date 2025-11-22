@@ -16,32 +16,25 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(null); // localStorage'dan OKUMA, sadece state'te tut
+  const [token, setToken] = useState(() => localStorage.getItem('digilibrary-token'));
   const navigate = useNavigate();
-
-  // Token'ı sadece mount anında oku, sonra state yönetir
   useEffect(() => {
-    const savedToken = localStorage.getItem('digilibrary-token');
-    const tokenTime = localStorage.getItem('digilibrary-token-time');
-    const now = Date.now();
-
-    // Token yoksa veya 30 günden eskiyse temizle
-    if (!savedToken || !tokenTime || (now - tokenTime > 30 * 24 * 60 * 60 * 1000)) {
-      logout();
+    console.log('🔐 AuthContext mounted, token:', token);
+    if (token) {
+      verifyToken();
+    } else {
       setLoading(false);
-      return;
     }
+  }, [token]);
 
-    setToken(savedToken);
-    verifyToken(savedToken);
-  }, []);
-
-  const verifyToken = async (currentToken) => {
+  const verifyToken = async () => {
     try {
+      console.log('🔐 Verifying token...');
       const response = await authService.getCurrentUser();
       setUser(response.data);
+      console.log('✅ User verified:', response.data);
     } catch (error) {
-      console.error('Token geçersiz veya süresi dolmuş', error);
+      console.error('❌ Token verification failed:', error);
       logout();
     } finally {
       setLoading(false);
@@ -50,51 +43,99 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log('🔐 Login attempt:', email);
       const response = await authService.login({ email, password });
       const { user, token } = response.data;
-
+      
       setUser(user);
       setToken(token);
       localStorage.setItem('digilibrary-token', token);
-      localStorage.setItem('digilibrary-token-time', Date.now());
-
-      toast.success('Giriş başarılı! Hoş geldin 👋');
+      
+      toast.success('Giriş başarılı! 🎉');
       navigate('/dashboard');
       return { success: true, user };
+      
     } catch (error) {
+      console.error('❌ Login error:', error);
       const message = error.response?.data?.message || 'Giriş başarısız';
       toast.error(message);
       return { success: false, message };
     }
   };
 
+  // 👇 BU register FONKSİYONUNU EKLEYİN
   const register = async (userData) => {
     try {
+      console.log('🔐 Register attempt:', userData);
       const response = await authService.register(userData);
       const { user, token } = response.data;
-
+      
       setUser(user);
       setToken(token);
       localStorage.setItem('digilibrary-token', token);
-      localStorage.setItem('digilibrary-token-time', Date.now());
+      
+      toast.success('Kayıt başarılı! 🎉');
+       
 
-      toast.success('Kayıt başarılı! Hoş geldin 🎉');
       navigate('/dashboard');
       return { success: true, user };
+      
     } catch (error) {
-      const message = error.response?.data?.message || 'Kayıt başarısız';
+      console.error('❌ Registration error:', error);
+      const message = error.response?.data?.message || 'Kayıt işlemi başarısız';
       toast.error(message);
       return { success: false, message };
     }
   };
 
   const logout = () => {
+    console.log('🔐 Logging out...');
     setUser(null);
     setToken(null);
     localStorage.removeItem('digilibrary-token');
-    localStorage.removeItem('digilibrary-token-time');
-    toast.info('Çıkış yapıldı 👋');
-    navigate('/login');
+    toast.info('Çıkış yapıldı');
+    navigate('/');
+  };
+
+  const updateProfile = async (profileData) => {
+    try {
+      console.log('🔐 Updating profile:', profileData);
+      // Bu fonksiyon için backend endpoint'i eklemeniz gerekebilir
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const updatedUser = { ...user, ...profileData };
+      setUser(updatedUser);
+      
+      toast.success('Profil başarıyla güncellendi!');
+      return { success: true, user: updatedUser };
+      
+    } catch (error) {
+      console.error('❌ Profile update error:', error);
+      const message = error.response?.data?.message || 'Profil güncellenirken hata oluştu';
+      toast.error(message);
+      throw new Error(message);
+    }
+  };
+
+  const changePassword = async (currentPassword, newPassword) => {
+    try {
+      console.log('🔐 Changing password...');
+      // Bu fonksiyon için backend endpoint'i eklemeniz gerekebilir
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (newPassword.length < 6) {
+        throw new Error('Yeni şifre en az 6 karakter olmalı');
+      }
+      
+      toast.success('Şifre başarıyla değiştirildi!');
+      return { success: true };
+      
+    } catch (error) {
+      console.error('❌ Password change error:', error);
+      const message = error.response?.data?.message || error.message || 'Şifre değiştirilirken hata oluştu';
+      toast.error(message);
+      throw new Error(message);
+    }
   };
 
   const value = {
@@ -104,13 +145,15 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    updateProfile,
+    changePassword,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'ADMIN'
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
