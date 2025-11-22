@@ -1,74 +1,81 @@
+// netlify/functions/create-payment-intent.js
+
 import Stripe from 'stripe';
 
-// STRIPE_SECRET_KEY gizli tutulmalıdır ve sadece backend/sunucu ortamında kullanılır.
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Gerekli CORS başlıkları
 const HEADERS = {
-  'Access-Control-Allow-Origin': '*', // Tüm origin'lere izin ver (Gerekiyorsa kısıtlayın!)
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Content-Type': 'application/json',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
-/**
- * Netlify Sunucusuz Fonksiyonu: Stripe Payment Intent oluşturur.
- */
 export const handler = async (event) => {
-  // CORS Pre-flight isteği yanıtı
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: HEADERS, body: '' };
   }
 
-  // Sadece POST isteklerine izin ver
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers: HEADERS, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
   try {
-    const { loanId, amount, bookTitle, fineDays } = JSON.parse(event.body);
+    const payload = JSON.parse(event.body);
 
-    // Giriş Doğrulama (Input Validation)
-    if (!loanId) {
+    const { loanId, amount, currency = 'try', bookTitle, fineDays } = payload;
+
+    // Zorunlu alan kontrolü
+    if (!loanId || !amount) {
       return {
         statusCode: 400,
         headers: HEADERS,
-        body: JSON.stringify({ error: 'loanId parametresi eksik.' })
+        body: JSON.stringify({ error: 'loanId ve amount zorunludur.' })
       };
     }
+
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      return {
+        statusCode: 400,
+        headers: HEADERS,
+        body: JSON.stringify({ error: 'Geçerli bir ödeme miktarı gerekli.' })
+      };
+    }
+
+    // Currency kontrolü ve dönüşüm (Stripe küçük harf bekler)
+    const validCurrencies = ['try', 'eur'];
+    const stripeCurrency = currency.toLowerCase();
     
-    // Miktar kontrolü: Pozitif sayı olmalı
-    const amountInTL = parseFloat(amount);
-    if (isNaN(amountInTL) || amountInTL <= 0) {
+    if (!validCurrencies.includes(stripeCurrency)) {
       return {
         statusCode: 400,
         headers: HEADERS,
-        body: JSON.stringify({ error: 'Geçerli bir ödeme miktarı (amount) gereklidir.' })
+        body: JSON.stringify({ 
+          error: `Desteklenmeyen para birimi: ${currency}. Sadece 'try' veya 'eur' kabul edilir.` 
+        })
       };
     }
 
-    // Payment Intent oluşturma
-    // Stripe API, miktarı küçük para birimi cinsinden (kuruş) bekler.
-    const amountInCents = Math.round(amountInTL * 100); 
+    // Miktarı kuruş/cent'e çevir
+    const amountInCents = Math.round(amountNum * 100);
 
+    // Payment Intent oluştur
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountInCents, 
-      currency: 'try', // Türk Lirası
-      metadata: { 
+      amount: amountInCents,
+      currency: stripeCurrency, // Artık dinamik: try veya eur
+      metadata: {
         loanId,
         bookTitle: bookTitle || 'Bilinmeyen Kitap',
-        fineDays: fineDays || 0
+        fineDays: fineDays?.toString() || '0',
+        currency: stripeCurrency.toUpperCase()
       },
-      // Otomatik ödeme yöntemlerini etkinleştir
-      automatic_payment_methods: {
-        enabled: true,
-      },
-      description: `Gecikme Cezası: ${bookTitle || 'Bilinmeyen Kitap'} (${fineDays} gün)`
+      description: `Gecikme Cezası - ${bookTitle || 'Kitap'} (${fineDays || 0} gün)`,
+      automatic_payment_methods: { enabled: true },
     });
 
-    console.log(`✅ Payment intent oluşturuldu: ${paymentIntent.id}`);
+    console.log(`PaymentIntent oluşturuldu: ${paymentIntent.id} | ${amountInCents} ${stripeCurrency.toUpperCase()}`);
 
-    // Frontend'e clientSecret ve intent ID'yi döndür
     return {
       statusCode: 200,
       headers: HEADERS,
@@ -77,15 +84,15 @@ export const handler = async (event) => {
         paymentIntentId: paymentIntent.id
       })
     };
+
   } catch (error) {
-    console.error('❌ Stripe/Sunucu Hatası:', error);
-    
-    // Genel hata yanıtı
+    console.error('Stripe Hatası:', error);
+
     return {
       statusCode: 500,
       headers: HEADERS,
-      body: JSON.stringify({ 
-        error: error.message || 'Sunucu hatası: Ödeme işlemi başlatılamadı.'
+      body: JSON.stringify({
+        error: error.message || 'Ödeme başlatılamadı. Lütfen tekrar deneyin.'
       })
     };
   }

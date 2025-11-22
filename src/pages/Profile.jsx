@@ -71,46 +71,33 @@ const Profile = () => {
   loadUserLoans();
 }, [refreshCounter]);
 
-  // Ceza hesapla
- const calculateFine = (loan) => {
-  try {
-    console.log('🧮 calculateFine - loan:', loan);
-    
-    // ⬇️ Daha güvenli kontrol
-    if (!loan || typeof loan !== 'object') {
-      console.warn('⚠️ Geçersiz loan objesi:', loan);
-      return { fineDays: 0, fineAmount: 0 };
-    }
-    
-    if (!loan.dueDate) {
-      console.warn('⚠️ dueDate yok:', loan);
-      return { fineDays: 0, fineAmount: 0 };
-    }
-    
-    // ⬇️ String kontrolü
-    const dueDateStr = String(loan.dueDate);
-    console.log('📅 dueDate string:', dueDateStr);
-    
-    const today = new Date();
-    const dueDate = new Date(dueDateStr);
-    
-    if (isNaN(dueDate.getTime())) {
-      console.warn('⚠️ Geçersiz dueDate:', dueDateStr);
-      return { fineDays: 0, fineAmount: 0 };
-    }
-    
-    const fineDays = Math.max(0, Math.ceil((today - dueDate) / (1000 * 60 * 60 * 24)));
-    const result = { fineDays, fineAmount: fineDays * 1 };
-    
-    console.log('💰 Calculated fine:', result);
-    return result;
-    
-  } catch (error) {
-    console.error('❌ calculateFine hatası:', error, loan);
-    return { fineDays: 0, fineAmount: 0 };
-  }
-};
+   // Ceza hesapla – TL / EUR otomatik, dil bazlı
+  const calculateFine = (loan) => {
+    try {
+      if (!loan?.dueDate) return { fineDays: 0, fineAmount: 0, currency: 'TRY', symbol: '₺' };
 
+      const today = new Date();
+      const dueDate = new Date(loan.dueDate);
+      if (isNaN(dueDate.getTime())) return { fineDays: 0, fineAmount: 0, currency: 'TRY', symbol: '₺' };
+
+      const fineDays = Math.max(0, Math.ceil((today - dueDate) / (1000 * 60 * 60 * 24)));
+
+      // Kullanıcının dili ne? → Euro mu TL mi?
+      const isEuro = language !== 'tr';
+      const dailyFine = isEuro ? 0.50 : 5.00; // 0.50€ veya 5₺
+      const fineAmount = Math.round(fineDays * dailyFine * 100) / 100;
+
+      return {
+        fineDays,
+        fineAmount,
+        currency: isEuro ? 'EUR' : 'TRY',
+        symbol: isEuro ? '€' : '₺'
+      };
+    } catch (error) {
+      console.error('calculateFine error:', error);
+      return { fineDays: 0, fineAmount: 0, currency: 'TRY', symbol: '₺' };
+    }
+  };
   const handleManualRefresh = () => {
     console.log('🔄 MANUAL REFRESH TRIGGERED');
     setRefreshCounter(prev => prev + 1);
@@ -470,7 +457,7 @@ const formatDate = (dateString) => {
                   <div className="space-y-4">
                     
 {userLoans.map((loan) => {
-  const { fineDays, fineAmount } = calculateFine(loan);
+  const fineInfo = calculateFine(loan);
   
   return (
     <div key={loan.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
@@ -499,49 +486,44 @@ const formatDate = (dateString) => {
       {/* Ceza Durumu + Öde Butonu */}
       <div className="flex flex-col items-end gap-3">
 
-        {/* CEZA DURUMU: Ödendi mi? */}
-        {fineDays > 0 && (
-          <div className="text-right">
-            {loan.finePaid ? (
-              // ÖDENDİ DURUMU → YEŞİL TİK
-              <div className="flex items-center gap-2 justify-end text-green-600 font-bold">
-                <span className="text-2xl">Ödendi</span>
-                {loan.paidAt && (
-                  <span className="text-xs text-green-600 opacity-80">
-                    ({formatDate(loan.paidAt)})
-                  </span>
-                )}
+        {/* Ceza Durumu */}
+      {fineInfo.fineDays > 0 && (
+        <div className="text-right">
+          {loan.finePaid ? (
+            <div className="flex items-center gap-2 justify-end text-green-600 font-bold">
+              <span className="text-2xl">Paid</span>
+            </div>
+          ) : (
+            <>
+              <div className="text-yellow-600 font-semibold">
+                {fineInfo.fineDays} {language === 'tr' ? 'gün gecikme' : 'days overdue'}
               </div>
-            ) : (
-              // HENÜZ ÖDENMEDİ → SARI UYARI
-              <>
-                <div className="text-yellow-600 font-semibold">
-                  {fineDays} gün gecikme
-                </div>
-                <div className="text-yellow-700 font-bold text-lg">
-                  {fineAmount} TL
-                </div>
-              </>
-            )}
-          </div>
-        )}
+              <div className="text-yellow-700 font-bold text-lg">
+                {fineInfo.fineAmount.toFixed(2)} {fineInfo.symbol}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
-        {/* ÖDE BUTONU – Sadece ödenmediyse göster */}
-        <div className="flex gap-3 items-center">
-  {/* ÖDE BUTONU */}
-  {fineDays > 0 && !loan.finePaid && (
-    <button 
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setSelectedLoan({ ...loan, fineDays, fineAmount });
-        setShowPayment(true);
-      }}
-      className="bg-green-500 hover:bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-md"
-    >
-      {language === 'tr' ? 'Öde' : 'Pay'}
-    </button>
-  )}
+      {/* ÖDE BUTONU */}
+      <div className="flex gap-3 items-center">
+        {fineInfo.fineDays > 0 && !loan.finePaid && (
+          <button 
+            onClick={() => {
+              setSelectedLoan({
+                ...loan,
+                fineDays: fineInfo.fineDays,
+                fineAmount: fineInfo.fineAmount,
+                fineCurrency: fineInfo.currency // ← Stripe'a doğru currency gider!
+              });
+              setShowPayment(true);
+            }}
+            className="bg-green-500 hover:bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-md"
+          >
+            {language === 'tr' ? 'Öde' : 'Pay'}
+          </button>
+        )}
 
   {/* DETAY BUTONU */}
 <button 
