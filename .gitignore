@@ -107,7 +107,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+
 
 # Vuepress build output
 .vuepress/dist
@@ -325,3 +325,5 @@ coverage/
 .nyc_output.env
 .history/
 *.tmp
+
+.netlify/
