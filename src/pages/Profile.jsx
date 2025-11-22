@@ -755,47 +755,32 @@ const formatDate = (dateString) => {
         )}
 
 {/* Payment Modal */}
+{/* Payment Modal */}
 <PaymentModal 
   loan={selectedLoan}
   isOpen={showPayment}
   onClose={() => setShowPayment(false)}
-  onSuccess={async (paymentIntent) => {
-    // 1. HER DURUMDA yerel state’i güncelle → ceza anında kaybolur!
+  onSuccess={(paymentIntent) => {
+    
     setLoans(prevLoans => 
       prevLoans.map(loan => 
         loan.id === selectedLoan.id 
-          ? { 
-              ...loan, 
-              finePaid: true, 
+          ? {
+              ...loan,
+              finePaid: true,
               fineAmount: 0,
               paidAt: new Date().toISOString(),
-              paymentIntentId: paymentIntent.id 
-            } 
+              paymentIntentId: paymentIntent.id
+            }
           : loan
       )
     );
 
-    // 2. MongoDB’ye kaydetmeye çalış (hata verse bile UI çalışsın)
-    try {
-      const response = await fetch('/.netlify/functions/mark-fine-as-paid', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          loanId: selectedLoan.id,
-          paymentIntentId: paymentIntent.id,
-          amount: selectedLoan.fineAmount
-        })
-      });
-
-      if (response.ok) {
-        toast.success('Ödeme tamamlandı ve kalıcı olarak kaydedildi!');
-      } else {
-        toast.warning('Ödeme alındı ama veritabanı güncellenemedi. (Yöneticiye bildirildi)');
-      }
-    } catch (err) {
-      console.warn('Function çalışmadı ama ödeme geçerli:', err);
-      toast.warning('Ödeme alındı, ceza kapatıldı! (Veritabanı bağlantısı geçici sorunlu)');
-    }
+    toast.success(
+      language === 'tr'
+        ? 'Ceza başarıyla ödendi ve kapatıldı!'
+        : 'Fine paid and closed successfully!'
+    );
 
     setShowPayment(false);
   }}
