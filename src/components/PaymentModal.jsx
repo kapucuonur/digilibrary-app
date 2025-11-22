@@ -3,11 +3,14 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { X, CreditCard, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 
-// Stripe anahtarı için standart React öneki (REACT_APP_) kullanılır.
-// Tarayıcı ortamında doğru okunması için gereklidir.
-const PUBLISHABLE_KEY = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
+// VITE UYUMLU – ARTIK ÇALIŞACAK!
+const PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
-// Stripe yüklemesini sadece anahtar varsa dene
+// Debug amaçlı (isteğe bağlı – sonra silebilirsin)
+if (!PUBLISHABLE_KEY) {
+  console.error('VITE_STRIPE_PUBLISHABLE_KEY eksik! Netlify ortam değişkenlerini kontrol et.');
+}
+
 const stripePromise = PUBLISHABLE_KEY 
   ? loadStripe(PUBLISHABLE_KEY) 
   : Promise.resolve(null); // Anahtar yoksa boş Promise döndür

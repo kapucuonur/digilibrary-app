@@ -4,12 +4,12 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  
+  VITE_STRIPE_PUBLISHABLE_KEY = "${REACT_APP_STRIPE_PUBLISHABLE_KEY}"
 
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-
-
 
 [[redirects]]
   from = "/api/*"
