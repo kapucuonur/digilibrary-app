@@ -756,18 +756,48 @@ const formatDate = (dateString) => {
 
         {/* Payment Modal */}
         <PaymentModal 
-          loan={selectedLoan}
-          isOpen={showPayment}
-          onClose={() => setShowPayment(false)}
-          onSuccess={() => {
-            setShowPayment(false);
-            handleManualRefresh();
-            toast.success(language === 'tr' 
-              ? 'Ceza ödemesi başarıyla tamamlandı!' 
-              : 'Fine payment completed successfully!'
-            );
-          }}
-        />
+  loan={selectedLoan}
+  isOpen={showPayment}
+  onClose={() => setShowPayment(false)}
+  onSuccess={async (paymentIntent) => {
+    try {
+      const response = await fetch('/.netlify/functions/mark-fine-as-paid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          loanId: selectedLoan.id,           // ← BU KESİN DOĞRU
+          paymentIntentId: paymentIntent.id,
+          amount: selectedLoan.fineAmount
+        })
+      });
+
+      if (!response.ok) throw new Error('Kayıt hatası');
+
+      // Yerel state’i güncelle → profil anında temizlenir
+      setLoans(prev => prev.map(loan => 
+        loan.id === selectedLoan.id 
+          ? { ...loan, finePaid: true, fineAmount: 0 }
+          : loan
+      ));
+
+      toast.success(
+        language === 'tr' 
+          ? 'Ceza başarıyla ödendi ve kapatıldı!' 
+          : 'Fine paid and closed successfully!'
+      );
+
+      setShowPayment(false);
+
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        language === 'tr'
+          ? 'Ödeme alındı ama sistemde kaydedilemedi. Yöneticinize bildirin.'
+          : 'Payment received but not recorded. Please contact admin.'
+      );
+    }
+  }}
+/>
       </div>
     </div>
   );
